@@ -1,0 +1,131 @@
+﻿@model IEnumerable<BUS_Agency_backstage.Models.Booking>
+
+@{
+    ViewData["Title"] = "復康巴士預約管理";
+}
+
+<div class="container-fluid pt-4">
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white shadow-sm">
+                <div class="card-body">今日總預約：@Model.Count()</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark shadow-sm">
+                <div class="card-body">待審核：@Model.Count(x => x.BookingStatus == 0)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">📅 預約單列表</h5>
+            @* <button class="btn btn-sm btn-success">+ 手動新增</button> *@
+            @* 找到這一行並修改 *@
+            <a asp-action="CreateBooking" class="btn btn-sm btn-success">+ 手動新增</a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>編號</th>
+                            <th>乘客 ID</th>
+                            <th>類別</th>
+                            <th>搭乘時間</th>
+                            <th>行程路徑</th>
+                            <th>目前狀態</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.BookingId</td>
+                                <td><small class="text-muted">@item.PassengerId</small></td>
+                                @* <td> *@
+                                @* <span class="badge @(item.BookingType == 2 ? "bg-info" : "bg-secondary")">
+                                        @(item.BookingType == 1 ? "復康" : "長照")
+                                    </span> *@
+                                @* <span class="badge @(item.BookingType1 == 2 ? "bg-info" : "bg-secondary")">
+                                        @(item.BookingType1 == 1 ? "復康" : "長照")
+                                    </span> *@
+                                @* </td> *@
+                                <td>@item.PickupTime.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>
+                                    <small>
+                                        @item.PickupAddr <br />
+                                        <i class="bi bi-arrow-down text-primary"></i> <br />
+                                        @item.DropoffAddr
+                                    </small>
+                                </td>
+                                <td>
+                                    @if (item.BookingStatus == 0)
+                                    {
+                                        <span class="badge rounded-pill bg-warning text-dark">待審核</span>
+                                    }
+                                    else if (item.BookingStatus == 1)
+                                    {
+                                        <span class="badge rounded-pill bg-success">已排班</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge rounded-pill bg-danger">已取消</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-primary"
+                                                onclick="editBooking('@item.BookingId')">編輯</button>
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                onclick="confirmDelete('@item.BookingId')">取消</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 編輯功能
+        function editBooking(id) {
+            window.location.href = '/Home/EditBooking/' + id;
+        }
+
+        // 取消功能：與後端 CancelBooking API 對接
+        function confirmDelete(id) {
+            Swal.fire({
+                title: '確定要取消預約嗎？',
+                text: "取消後將無法復原此筆預約單！",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: '是的，我要取消',
+                cancelButtonText: '再想想'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // 呼叫後端 Action (id 現在是數字)
+                    fetch('/Home/CancelBooking/' + id, {
+                        method: 'POST'
+                    })
+                        .then(response => {
+                            if (response.ok) {
+                                Swal.fire('已取消！', '預約單已成功刪除。', 'success')
+                                    .then(() => location.reload());
+                            } else {
+                                Swal.fire('錯誤', '取消失敗，請洽管理員。', 'error');
+                            }
+                        });
+                }
+            })
+        }
+    </script>
+}

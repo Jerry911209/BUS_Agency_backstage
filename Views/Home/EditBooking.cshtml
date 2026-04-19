@@ -1,0 +1,39 @@
+@model BUS_Agency_backstage.Models.Booking
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">✏️ 編輯預約單 - 編號 @Model.BookingId</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="EditBooking" method="post">
+                <input type="hidden" asp-for="BookingId" />
+                <input type="hidden" asp-for="PassengerId" />
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">搭乘時間</label>
+                        <input asp-for="PickupTime" type="datetime-local" class="form-control" required />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">上車地點</label>
+                        <input asp-for="PickupAddr" class="form-control" required />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">下車地點</label>
+                        <input asp-for="DropoffAddr" class="form-control" required />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">目前狀態 (0:待審, 1:已排)</label>
+                        <input asp-for="BookingStatus" type="number" class="form-control" />
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">儲存變更</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">取消</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

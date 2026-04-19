@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BUS_Agency_backstage", "BUS_Agency_backstage.csproj", "{EA014D25-0FB8-D353-A37F-FF658EED5DDE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EA014D25-0FB8-D353-A37F-FF658EED5DDE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EA014D25-0FB8-D353-A37F-FF658EED5DDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EA014D25-0FB8-D353-A37F-FF658EED5DDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EA014D25-0FB8-D353-A37F-FF658EED5DDE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3D2E2AA2-3AFE-4CA0-803E-20BBE75819DD}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,36 @@
+@model BUS_Agency_backstage.Models.Booking
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">➕ 手動新增預約單</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="CreateBooking" method="post">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">搭乘時間</label>
+                        <input asp-for="PickupTime" type="datetime-local" class="form-control" required />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">上車地點</label>
+                        <input asp-for="PickupAddr" class="form-control" placeholder="請輸入完整地址" required />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">下車地點</label>
+                        <input asp-for="DropoffAddr" class="form-control" placeholder="請輸入目的地" required />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">同行人數</label>
+                        <input asp-for="CompanionCount" type="number" class="form-control" min="0" value="0" />
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">確認新增</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">取消返回</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
