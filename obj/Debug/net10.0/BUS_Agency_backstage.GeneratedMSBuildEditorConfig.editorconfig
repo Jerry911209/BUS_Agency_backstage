@@ -19,65 +19,65 @@ build_property.TargetFrameworkIdentifier = .NETCoreApp
 build_property.TargetFrameworkVersion = v10.0
 build_property.RootNamespace = BUS_Agency_backstage
 build_property.RootNamespace = BUS_Agency_backstage
-build_property.ProjectDir = C:\Users\jerry\Documents\GitHub\BUS_Agency_backstage\
+build_property.ProjectDir = C:\Users\jerry\OneDrive\桌面\git\Topics\BUS_Agency_backstage\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.RazorLangVersion = 9.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = C:\Users\jerry\Documents\GitHub\BUS_Agency_backstage
+build_property.MSBuildProjectDirectory = C:\Users\jerry\OneDrive\桌面\git\Topics\BUS_Agency_backstage
 build_property._RazorSourceGeneratorDebug = 
 build_property.EffectiveAnalysisLevelStyle = 10.0
 build_property.EnableCodeStyleSeverity = 
 
-[C:/Users/jerry/Documents/GitHub/BUS_Agency_backstage/Views/Home/CreateBooking.cshtml]
+[C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Home/CreateBooking.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxDcmVhdGVCb29raW5nLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/jerry/Documents/GitHub/BUS_Agency_backstage/Views/Home/DriverManagement.cshtml]
+[C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Home/DriverManagement.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxEcml2ZXJNYW5hZ2VtZW50LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/jerry/Documents/GitHub/BUS_Agency_backstage/Views/Home/EditBooking.cshtml]
+[C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Home/EditBooking.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxFZGl0Qm9va2luZy5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/jerry/Documents/GitHub/BUS_Agency_backstage/Views/Home/Index.cshtml]
+[C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Home/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/jerry/Documents/GitHub/BUS_Agency_backstage/Views/Home/Login.cshtml]
+[C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Home/Login.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxMb2dpbi5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/jerry/Documents/GitHub/BUS_Agency_backstage/Views/Home/Privacy.cshtml]
+[C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Home/Privacy.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxQcml2YWN5LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/jerry/Documents/GitHub/BUS_Agency_backstage/Views/Home/Statistics.cshtml]
+[C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Home/Statistics.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxTdGF0aXN0aWNzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/jerry/Documents/GitHub/BUS_Agency_backstage/Views/Home/VehicleManagement.cshtml]
+[C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Home/VehicleManagement.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxWZWhpY2xlTWFuYWdlbWVudC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/jerry/Documents/GitHub/BUS_Agency_backstage/Views/Shared/Error.cshtml]
+[C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Shared/Error.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXEVycm9yLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/jerry/Documents/GitHub/BUS_Agency_backstage/Views/Shared/_ValidationScriptsPartial.cshtml]
+[C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Shared/_ValidationScriptsPartial.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9WYWxpZGF0aW9uU2NyaXB0c1BhcnRpYWwuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/jerry/Documents/GitHub/BUS_Agency_backstage/Views/_ViewImports.cshtml]
+[C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/_ViewImports.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/jerry/Documents/GitHub/BUS_Agency_backstage/Views/_ViewStart.cshtml]
+[C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/_ViewStart.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdTdGFydC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/jerry/Documents/GitHub/BUS_Agency_backstage/Views/Shared/_Layout.cshtml]
+[C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Shared/_Layout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9MYXlvdXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = b-wjdaeuslc1

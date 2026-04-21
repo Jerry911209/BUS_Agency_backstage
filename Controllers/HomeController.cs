@@ -43,21 +43,21 @@ namespace BUS_Agency_backstage.Controllers
             return View(bookings);
         }
 
-        // 車輛管理
+        // 車輛管理：從資料庫抓取真實車輛
         public IActionResult VehicleManagement()
         {
             if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserRole"))) return RedirectToAction("Login");
 
-            var vehicles = _db.Vehicles.ToList();
+            var vehicles = _db.Vehicles.ToList(); // 抓取資料庫所有車輛
             return View(vehicles);
         }
 
-        // 司機管理
+        // 司機管理：從資料庫抓取真實司機
         public IActionResult DriverManagement()
         {
             if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserRole"))) return RedirectToAction("Login");
 
-            var drivers = _db.Drivers.ToList();
+            var drivers = _db.Drivers.ToList(); // 抓取資料庫所有司機
             return View(drivers);
         }
 
@@ -65,6 +65,8 @@ namespace BUS_Agency_backstage.Controllers
         public IActionResult Statistics()
         {
             if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserRole"))) return RedirectToAction("Login");
+
+            ViewBag.TotalBookings = _db.Bookings.Count(); // 計算總預約數
             return View();
         }
 
@@ -119,29 +121,31 @@ namespace BUS_Agency_backstage.Controllers
 
             return NotFound(); // 沒找到回傳 404
         }
-        // 顯示手動新增頁面
-        [HttpGet]
+
+        [HttpGet] // 建議加上這行，明確表示這是處理 GET 請求的方法
+        // 1. 顯示新增表單 (GET)
         public IActionResult CreateBooking()
         {
-            if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserRole"))) return RedirectToAction("Login");
+            // 檢查有沒有登入
+            if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserRole")))
+                return RedirectToAction("Login");
+
             return View();
         }
-
-        // 接收表單提交
-        [HttpPost]
         public IActionResult CreateBooking(Booking model)
         {
+            // 如果你的 PassengerId 是 Guid 且必填
+            // 這裡要確保它不是空的，否則 SaveChanges 會報錯
+            if (model.PassengerId == Guid.Empty)
+            {
+                // 先暫時塞一個固定的 GUID 測試用 (請換成你資料庫裡有的 ID)
+                model.PassengerId = Guid.Parse("你資料庫裡的某個GUID");
+            }
+
             if (ModelState.IsValid)
             {
-                // 1. 設定初始狀態 (假設 0 是待審核)
-                model.BookingStatus = 0;
-
-                // 2. 加入到資料庫
                 _db.Bookings.Add(model);
-
-                // 3. 儲存變更
                 _db.SaveChanges();
-
                 return RedirectToAction("Index");
             }
             return View(model);

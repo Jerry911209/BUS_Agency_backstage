@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\jerry\\Documents\\GitHub\\BUS_Agency_backstage\\BUS_Agency_backstage.csproj": {}
+    "C:\\Users\\jerry\\OneDrive\\桌面\\git\\Topics\\BUS_Agency_backstage\\BUS_Agency_backstage.csproj": {}
   },
   "projects": {
-    "C:\\Users\\jerry\\Documents\\GitHub\\BUS_Agency_backstage\\BUS_Agency_backstage.csproj": {
+    "C:\\Users\\jerry\\OneDrive\\桌面\\git\\Topics\\BUS_Agency_backstage\\BUS_Agency_backstage.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\jerry\\Documents\\GitHub\\BUS_Agency_backstage\\BUS_Agency_backstage.csproj",
+        "projectUniqueName": "C:\\Users\\jerry\\OneDrive\\桌面\\git\\Topics\\BUS_Agency_backstage\\BUS_Agency_backstage.csproj",
         "projectName": "BUS_Agency_backstage",
-        "projectPath": "C:\\Users\\jerry\\Documents\\GitHub\\BUS_Agency_backstage\\BUS_Agency_backstage.csproj",
+        "projectPath": "C:\\Users\\jerry\\OneDrive\\桌面\\git\\Topics\\BUS_Agency_backstage\\BUS_Agency_backstage.csproj",
         "packagesPath": "C:\\Users\\jerry\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\jerry\\Documents\\GitHub\\BUS_Agency_backstage\\obj\\",
+        "outputPath": "C:\\Users\\jerry\\OneDrive\\桌面\\git\\Topics\\BUS_Agency_backstage\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

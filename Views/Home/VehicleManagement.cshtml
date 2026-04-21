@@ -1,3 +1,5 @@
+@model IEnumerable<BUS_Agency_backstage.Models.Vehicle>
+
 <h2 class="mt-4">🚐 車輛管理</h2>
 <div class="card shadow-sm mt-3">
     <div class="card-body">
@@ -8,11 +10,31 @@
                     <th>車型</th>
                     <th>可載人數</th>
                     <th>目前狀態</th>
-                    <th>操作</th>
                 </tr>
             </thead>
             <tbody>
-                <tr><td>ABC-1234</td><td>福斯高頂 (復康)</td><td>2人+2輪椅</td><td><span class="badge bg-success">執勤中</span></td><td><button class="btn btn-sm btn-info">詳情</button></td></tr>
+                @if (Model != null)
+                {
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            @* 關鍵修正：對應 SQL 的 [PlateNo] *@
+                            <td>@item.PlateNo</td>
+                            
+                            @* 對應 SQL 的 [VehicleType] *@
+                            <td>@item.VehicleType</td>
+                            
+                            @* 對應 SQL 的 [SeatCount] *@
+                            <td>@item.SeatCount</td>
+                            
+                            <td>
+                                @* 對應 SQL 的 [Status]，假設 1 是執勤中 *@
+                                @if (item.Status == 1) { <span class="badge bg-success">執勤中</span> }
+                                else { <span class="badge bg-secondary">維修/休息</span> }
+                            </td>
+                        </tr>
+                    }
+                }
             </tbody>
         </table>
     </div>
