@@ -1,4 +1,15 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Http
+@{
+    // 關鍵修正：將 Layout 設為 null，代表這個頁面不使用母版頁面
+    // 注意：如果你是在 _Layout.cshtml 內部，這行通常不需要，
+    // 但如果你是想讓某個頁面跳脫母版，則在那頁設定。
+    // 這裡我們保留你原本的邏輯。
+    Layout = null;
+    
+    // 取得當前登入者的角色
+    var role = Context.Session.GetString("UserRole");
+}
+<!DOCTYPE html>
 <html lang="zh-Hant">
 
 <head>
@@ -45,12 +56,29 @@
                     <ul class="nav flex-column">
                         <li class="nav-item">
                             <a class="nav-link" asp-controller="Home" asp-action="Index">
-                                <i class="bi bi-calendar-check me-2"></i> 預約總覽
+                                🏠 首頁概況
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Home" asp-action="UserList">
+                                👥 帳號權限管理
+                            </a>
+                        </li>
+
+                        @* 新增：公告訊息管理 (CMS) 選項 *@
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Home" asp-action="AnnouncementList">
+                                📢 公告訊息管理
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" asp-controller="Home" asp-action="VehicleManagement">
                                 <i class="bi bi-truck me-2"></i> 車輛管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Home" asp-action="DispatchList">
+                                <i class="bi bi-calendar-check me-2"></i> 派車任務管理
                             </a>
                         </li>
                         <li class="nav-item">

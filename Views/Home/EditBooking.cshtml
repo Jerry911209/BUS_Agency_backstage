@@ -3,37 +3,52 @@
 <div class="container mt-4">
     <div class="card shadow">
         <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">✏️ 編輯預約單 - 編號 @Model.BookingId</h5>
+            <h5>✏️ 編輯預約單 - #@Model.BookingId</h5>
         </div>
         <div class="card-body">
             <form asp-action="EditBooking" method="post">
                 <input type="hidden" asp-for="BookingId" />
-                <input type="hidden" asp-for="PassengerId" />
-
+                
                 <div class="row">
                     <div class="col-md-6 mb-3">
+                        <label class="form-label">乘客姓名 (輸入搜尋)</label>
+                        <input type="text" name="passengerName" id="pSearch" class="form-control" autocomplete="off" />
+                        <ul id="pList" class="list-group position-absolute w-50 shadow"
+                            style="display:none; z-index:1000;"></ul>
+                    </div>
+                    @* 找到原本的目前狀態輸入區塊並替換 *@
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">目前狀態</label>
+                        <select asp-for="BookingStatus" class="form-select">
+                            <option value="0">待審核</option>
+                            <option value="1">已排班</option>
+                            <option value="2">已取消</option>
+                            <option value="3">補件中</option>
+                            <option value="4">已駁回</option>
+                        </select>
+                    </div>
+                    <div class="col-md-12 mb-3">
                         <label class="form-label">搭乘時間</label>
-                        <input asp-for="PickupTime" type="datetime-local" class="form-control" required />
+                        <input asp-for="PickupTime" type="datetime-local" class="form-control" />
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">上車地點</label>
-                        <input asp-for="PickupAddr" class="form-control" required />
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">下車地點</label>
-                        <input asp-for="DropoffAddr" class="form-control" required />
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">目前狀態 (0:待審, 1:已排)</label>
-                        <input asp-for="BookingStatus" type="number" class="form-control" />
-                    </div>
+                    @* ...其餘地址欄位... *@
                 </div>
-
-                <div class="mt-4">
-                    <button type="submit" class="btn btn-primary">儲存變更</button>
-                    <a asp-action="Index" class="btn btn-outline-secondary">取消</a>
-                </div>
+                <button type="submit" class="btn btn-primary mt-3">儲存變更</button>
             </form>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        $('#pSearch').on('input', function () {
+            let q = $(this).val();
+            if (q.length < 1) { $('#pList').hide(); return; }
+            $.get('/Home/GetPassengerList', { query: q }, function (data) {
+                let h = '';
+                data.forEach(i => h += `<li class="list-group-item list-group-item-action" onclick="$('#pSearch').val('${i.username}'); $('#pList').hide();">${i.username}</li>`);
+                $('#pList').html(h).show();
+            });
+        });
+    </script>
+}

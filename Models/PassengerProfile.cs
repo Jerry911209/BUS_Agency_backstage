@@ -17,11 +17,19 @@ public partial class PassengerProfile
 
     public string? DisabilityLevel { get; set; }
 
+    public DateOnly? ExpiryDate { get; set; }
+
     public DateOnly? BirthDate { get; set; }
+
+    public string? AssistiveDevice { get; set; }
+
+    public string? Address { get; set; }
 
     public int? AuditStatus { get; set; }
 
     public virtual Account? Account { get; set; }
 
     public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+
+    public virtual ICollection<Relationship> Relationships { get; set; } = new List<Relationship>();
 }

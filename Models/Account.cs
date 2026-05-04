@@ -9,7 +9,7 @@ public partial class Account
 
     public string Username { get; set; } = null!;
 
-    public string? PasswordHash { get; set; }
+    public string PasswordHash { get; set; } = null!;
 
     public int? RoleId { get; set; }
 
@@ -17,9 +17,15 @@ public partial class Account
 
     public bool? IsLocked { get; set; }
 
+    public string? LastLoginIp { get; set; }
+
     public virtual DispatchCenter? Center { get; set; }
 
     public virtual ICollection<Driver> Drivers { get; set; } = new List<Driver>();
+
+    public virtual ICollection<Message> MessageReceivers { get; set; } = new List<Message>();
+
+    public virtual ICollection<Message> MessageSenders { get; set; } = new List<Message>();
 
     public virtual ICollection<PassengerProfile> PassengerProfiles { get; set; } = new List<PassengerProfile>();
 

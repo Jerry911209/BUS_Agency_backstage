@@ -1,0 +1,49 @@
+@model IEnumerable<BUS_Agency_backstage.Models.Announcement>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between mb-3">
+        <h3>📢 公告訊息管理 (CMS)</h3>
+        <a asp-action="CreateAnnouncement" class="btn btn-success">+ 發布新公告</a>
+    </div>
+
+    <table class="table table-hover shadow-sm border">
+        <thead class="table-dark">
+            <tr>
+                <th>分類</th>
+                <th>標題</th>
+                <th>發布時間</th>
+                <th>狀態</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model) {
+                <tr id="row-@item.PostId">
+                    <td>
+                        @if(item.Title.Contains("[系統維護]")) { <span class="badge bg-danger">維護</span> }
+                        else if(item.Title.Contains("[政策異動]")) { <span class="badge bg-warning text-dark">政策</span> }
+                        else { <span class="badge bg-info text-dark">消息</span> }
+                    </td>
+                    <td>@item.Title</td>
+                    <td>@(item.PublishDate?.ToString("yyyy-MM-dd HH:mm"))</td>
+                    <td>
+                        @(item.PublishDate > DateTime.Now ? "⏳ 預約中" : "✅ 已發布")
+                    </td>
+                    <td>
+                        <button onclick="deletePost(@item.PostId)" class="btn btn-sm btn-outline-danger">刪除</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<script>
+function deletePost(id) {
+    if(confirm('確定要刪除這則公告嗎？')) {
+        $.post('/Home/DeleteAnnouncement', { id: id }, function() {
+            $('#row-' + id).fadeOut();
+        });
+    }
+}
+</script>

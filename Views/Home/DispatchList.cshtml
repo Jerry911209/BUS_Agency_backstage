@@ -1,0 +1,44 @@
+@model IEnumerable<BUS_Agency_backstage.Models.DispatchTask>
+
+<div class="container-fluid pt-4">
+    <div class="d-flex justify-content-between mb-3">
+        <h3>📋 派車任務排程</h3>
+        <a asp-action="EditDispatch" class="btn btn-primary">+ 手動派車</a>
+    </div>
+
+    <div class="card shadow">
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>任務編號</th>
+                    <th>預約單號</th>
+                    <th>指派車輛</th>
+                    <th>指派司機</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model) {
+                    <tr id="task-@item.TaskId">
+                        <td>@item.TaskId</td>
+                        <td>#@item.BookingId</td>
+                        <td>@(item.Vehicle?.PlateNo ?? "未設定")</td>
+                        <td>@(item.Driver?.DriverName ?? "未設定")</td>
+                        <td>
+                            <a asp-action="EditDispatch" asp-route-id="@item.TaskId" class="btn btn-sm btn-outline-primary">編輯</a>
+                            <button onclick="deleteTask(@item.TaskId)" class="btn btn-sm btn-outline-danger">撤除</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function deleteTask(id) {
+    if(confirm('確定要撤除此派車任務嗎？')) {
+        $.post('/Home/DeleteDispatch', { id: id }, function() { location.reload(); });
+    }
+}
+</script>

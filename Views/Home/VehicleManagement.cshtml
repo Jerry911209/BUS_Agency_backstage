@@ -1,41 +1,66 @@
 @model IEnumerable<BUS_Agency_backstage.Models.Vehicle>
 
-<h2 class="mt-4">🚐 車輛管理</h2>
-<div class="card shadow-sm mt-3">
-    <div class="card-body">
-        <table class="table table-bordered">
-            <thead class="table-light">
-                <tr>
-                    <th>車牌號碼</th>
-                    <th>車型</th>
-                    <th>可載人數</th>
-                    <th>目前狀態</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (Model != null)
-                {
-                    @foreach (var item in Model)
-                    {
-                        <tr>
-                            @* 關鍵修正：對應 SQL 的 [PlateNo] *@
-                            <td>@item.PlateNo</td>
-                            
-                            @* 對應 SQL 的 [VehicleType] *@
-                            <td>@item.VehicleType</td>
-                            
-                            @* 對應 SQL 的 [SeatCount] *@
-                            <td>@item.SeatCount</td>
-                            
-                            <td>
-                                @* 對應 SQL 的 [Status]，假設 1 是執勤中 *@
-                                @if (item.Status == 1) { <span class="badge bg-success">執勤中</span> }
-                                else { <span class="badge bg-secondary">維修/休息</span> }
-                            </td>
-                        </tr>
-                    }
-                }
-            </tbody>
-        </table>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between mb-3">
+        <h3>🚚 車輛管理</h3>
+        <a asp-action="EditVehicle" class="btn btn-success">+ 新增車輛</a>
     </div>
+
+    <table class="table table-hover shadow-sm border">
+        <thead class="table-dark">
+            <tr>
+                <th>編號</th>
+                <th>車牌號碼</th>
+                <th>車型</th>
+                <th>載客限制</th>
+                <th>目前狀態</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr id="v-row-@item.VehicleId">
+                    <td>@item.VehicleId</td>
+                    <td><strong>@item.PlateNo</strong></td>
+                    <td>@item.VehicleType</td>
+                    <td>@item.SeatCount 人</td>
+                    <td>
+                        @if (item.Status == 0)
+                        {
+                            <span class="badge bg-success">正常</span>
+                        }
+                        else if (item.Status == 1)
+                        {
+
+                            <span class="badge bg-warning text-dark">維修中</span>
+                        }
+                        else
+                        {
+
+                            <span class="badge bg-danger">報廢</span>
+                        }
+                    </td>
+                    <td>
+                        <div class="btn-group">
+                            <a asp-action="EditVehicle" asp-route-id="@item.VehicleId"
+                               class="btn btn-sm btn-outline-primary">修改</a>
+                            <button onclick="deleteVehicle(@item.VehicleId)"
+                                    class="btn btn-sm btn-outline-danger">刪除</button>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
 </div>
+
+<script>
+    function deleteVehicle(id) {
+        if (confirm('確定要永久刪除這部車輛嗎？')) {
+            $.post('/Home/DeleteVehicle', { id: id }, function () {
+                $('#v-row-' + id).fadeOut();
+            });
+        }
+    }
+</script>

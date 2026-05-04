@@ -1,0 +1,47 @@
+@model BUS_Agency_backstage.Models.Vehicle
+
+<div class="container mt-4" style="max-width: 600px;">
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">@(Model.VehicleId == 0 ? "🆕 新增車輛" : "📝 修改車輛資訊")</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="SaveVehicle" method="post">
+                <input type="hidden" asp-for="VehicleId" />
+                
+                <div class="mb-3">
+                    <label class="form-label">車牌號碼 (PlateNo)</label>
+                    <input asp-for="PlateNo" class="form-control" placeholder="例如: ABC-1234" required />
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">車型 (VehicleType)</label>
+                    <select asp-for="VehicleType" class="form-select">
+                        <option value="一般">一般</option>
+                        <option value="高頂">高頂</option>
+                        <option value="爬梯機">爬梯機</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">載客人數限制 (SeatCount)</label>
+                    <input asp-for="SeatCount" type="number" class="form-control" min="1" required />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">目前狀態 (Status)</label>
+                    <select asp-for="Status" class="form-select">
+                        <option value="0">正常</option>
+                        <option value="1">維修中</option>
+                        <option value="2">報廢</option>
+                    </select>
+                </div>
+
+                <div class="text-end">
+                    <a asp-action="VehicleManagement" class="btn btn-secondary">取消</a>
+                    <button type="submit" class="btn btn-primary">確認儲存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

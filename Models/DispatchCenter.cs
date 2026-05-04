@@ -7,7 +7,7 @@ public partial class DispatchCenter
 {
     public int CenterId { get; set; }
 
-    public string? CenterName { get; set; }
+    public string CenterName { get; set; } = null!;
 
     public virtual ICollection<Account> Accounts { get; set; } = new List<Account>();
 }

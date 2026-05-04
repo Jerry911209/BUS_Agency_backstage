@@ -1,0 +1,39 @@
+@model BUS_Agency_backstage.Models.Account
+
+<div class="container mt-5">
+    <div class="card shadow mx-auto" style="max-width: 500px;">
+        <div class="card-header bg-primary text-white">
+            <h5>修改使用者資料</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="EditUser" method="post">
+                <input type="hidden" asp-for="AccountId" />
+                <div class="mb-3">
+                    <label class="form-label">帳號</label>
+                    <input asp-for="Username" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">角色權限</label>
+                    <select name="RoleId" class="form-select">
+                        @if (Context.Session.GetString("UserRole") == "Super")
+                        {
+                            <option value="1">1 - 最高管理員</option>
+                        }
+                        <option value="5">5 - 系統管理員</option>
+                        <option value="2">2 - 調度中心管理員</option>
+                        <option value="3">3 - 司機</option>
+                        <option value="4">4 - 一般民眾</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">重設密碼 (若不修改請留空)</label>
+                    <input type="password" name="PasswordHash" class="form-control" placeholder="輸入新密碼" />
+                </div>
+                <div class="d-flex justify-content-between">
+                    <a asp-action="UserList" class="btn btn-secondary">返回列表</a>
+                    <button type="submit" class="btn btn-primary">儲存變更</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
