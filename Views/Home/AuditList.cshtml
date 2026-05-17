@@ -1,0 +1,247 @@
+@model IEnumerable<BUS_Agency_backstage.Models.PassengerProfile>
+
+@{
+    ViewData["Title"] = "服務使用者審核功能";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">📋 服務使用者資格審核與條件設定</h5>
+            <span class="badge bg-secondary">本機關業務人員專用管理區</span>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover table-striped mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>申請人姓名</th>
+                        <th>身分證 (隱碼)</th>
+                        <th>年齡 (生日)</th>
+                        <th>輔具資訊</th>
+                        <th>核定項目項目</th>
+                        <th>身障/失能等級</th>
+                        <th>狀態</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model == null || !Model.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">目前系統中暫無服務使用者申請案。</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model)
+                        {
+                            // 在迴圈最上方處理完所有純 C# 運算邏輯，避免與下方的 HTML 標籤混雜
+                            int age = 0;
+                            if (item.BirthDate.HasValue)
+                            {
+                                var today = DateOnly.FromDateTime(DateTime.Today);
+                                age = today.Year - item.BirthDate.Value.Year;
+                                if (today < item.BirthDate.Value.AddYears(age)) age--;
+                            }
+
+                            string maskedId = "未填寫";
+                            if (!string.IsNullOrEmpty(item.IdentityNo) && item.IdentityNo.Length >= 7)
+                            {
+                                maskedId = item.IdentityNo.Substring(0, 4) + "***" + item.IdentityNo.Substring(item.IdentityNo.Length - 3);
+                            }
+
+                            // 透過 C# 8.0 表達式提早決定狀態文字與樣式
+                            int currentStatus = item.AuditStatus ?? 0;
+                            string statusBadgeClass = currentStatus switch
+                            {
+                                1 => "bg-success",
+                                2 => "bg-danger",
+                                _ => "bg-secondary"
+                            };
+                            string statusText = currentStatus switch
+                            {
+                                1 => "✅ 1:審核通過",
+                                2 => "❌ 2:已駁回",
+                                _ => "⏳ 0:待審核"
+                            };
+
+                            <tr>
+                                <td><strong>@item.RealName</strong></td>
+                                <td><code>@maskedId</code></td>
+                                <td>
+                                    @if(item.BirthDate.HasValue) {
+                                        <span>@age 歲 <small class="text-muted">(@item.BirthDate.Value.ToString("yyyy-MM-dd"))</small></span>
+                                    } else {
+                                        <span class="text-muted small">未提供</span>
+                                    }
+                                </td>
+                                <td><span class="text-muted small">@(string.IsNullOrEmpty(item.AssistiveDevice) ? "一般/無" : item.AssistiveDevice)</span></td>
+                                <td>
+                                    @if (item.IdentityType == 1)
+                                    {
+                                        <span class="badge bg-info text-dark">1:復康 (身障)</span>
+                                    }
+                                    else if (item.IdentityType == 2)
+                                    {
+                                        <span class="badge bg-warning text-dark">2:長照 (失能)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-dark">未歸類</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="text-primary font-weight-bold">
+                                        @(string.IsNullOrEmpty(item.DisabilityLevel) ? "未判定" : item.DisabilityLevel)
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge @statusBadgeClass">@statusText</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" onclick="openAuditModal('@item.PassengerId')">
+                                        ⚙️ 處理審核
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="auditModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">⚙️ 服務使用者資格審核與條件設定面板</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="modalPassengerId" />
+                
+                <p><strong>申請人姓名：</strong> <span id="lblRealName" class="text-dark font-weight-bold"></span></p>
+                <p><strong>通訊地址：</strong> <span id="lblAddress" class="text-muted small"></span></p>
+                <p><strong>證明到期日：</strong> <span id="lblExpiryDate" class="text-danger small"></span></p>
+                <hr />
+                
+                <div class="mb-3">
+                    <label class="form-label font-weight-bold text-secondary">一、 核定准許乘車項目 (IdentityType)</label>
+                    <select id="ddlIdentityType" class="form-select" onchange="toggleLevelOptions()">
+                        <option value="1">核定為：1 - 復康巴士服務 (身心障礙資格)</option>
+                        <option value="2">核定為：2 - 長照交通接送服務 (失能接送資格)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label font-weight-bold text-secondary">二、 障礙等級 / 失能等級條件設定 (DisabilityLevel)</label>
+                    <select id="ddlLevel" class="form-select">
+                        <option value="">-- 請選擇等級 --</option>
+                        <optgroup label="身心障礙 (復康巴士適用)" id="groupDisability">
+                            <option value="輕度">輕度</option>
+                            <option value="中度">中度</option>
+                            <option value="重度">重度</option>
+                            <option value="極重度">極重度</option>
+                        </optgroup>
+                        <optgroup label="長照失能等級 (長照接送適用)" id="groupLongTermCare">
+                            <option value="第2級">第2級</option>
+                            <option value="第3級">第3級</option>
+                            <option value="第4級">第4級</option>
+                            <option value="第5級">第5級</option>
+                            <option value="第6級">第6級</option>
+                            <option value="第7級">第7級</option>
+                            <option value="第8級">第8級</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label font-weight-bold text-secondary">三、 審核結論決定 (AuditStatus)</label>
+                    <select id="ddlStatus" class="form-select">
+                        <option value="0">⏳ 0: 保持待審核狀態</option>
+                        <option value="1">✅ 1: 核准通過 (開啟民眾訂車權限)</option>
+                        <option value="2">❌ 2: 執行駁回 (拒絕此申請案)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消關閉</button>
+                <button type="button" class="btn btn-success" onclick="submitAuditResult()">確認存檔並發布</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        let auditModalInstance;
+        
+        document.addEventListener("DOMContentLoaded", function () {
+            auditModalInstance = new bootstrap.Modal(document.getElementById('auditModal'));
+        });
+
+        // 智慧型優化：當業務切換第一個下拉選單時，自動幫他聚焦適當的群組（非必選，但能提升易用性）
+        function toggleLevelOptions() {
+            let identityType = document.getElementById('ddlIdentityType').value;
+            // 這裡可以選擇不做事讓他們並存，或是提示選取
+        }
+
+        // 開啟視窗並透過 AJAX 發送 PassengerId 抓取單一乘客明細
+        function openAuditModal(id) {
+            fetch('/Home/GetAuditDetail/' + id)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('modalPassengerId').value = data.passengerId;
+                document.getElementById('lblRealName').innerText = data.realName || "未填姓名";
+                document.getElementById('lblAddress').innerText = data.address || "未提供地址";
+                document.getElementById('lblExpiryDate').innerText = data.expiryDate || "永久有效";
+                
+                // 填入資料庫現有條件設定（若無預設為1）
+                document.getElementById('ddlIdentityType').value = (data.identityType == null || data.identityType == 0) ? 1 : data.identityType;
+                
+                // 完美配對：直接讓 select 匹配資料庫裡原本存的字串（例如 "中度" 或 "第4級"）
+                document.getElementById('ddlLevel').value = data.disabilityLevel || "";
+                
+                document.getElementById('ddlStatus').value = data.auditStatus ?? 0;
+                
+                auditModalInstance.show();
+            });
+        }
+
+        // 非同步儲存審核結論與條件設定
+        function submitAuditResult() {
+            let id = document.getElementById('modalPassengerId').value;
+            let idType = document.getElementById('ddlIdentityType').value;
+            let level = document.getElementById('ddlLevel').value; // 改抓 select 的值
+            let status = document.getElementById('ddlStatus').value;
+
+            if(!level) {
+                Swal.fire('欄位未選', '請務必選擇該服務使用者的障礙等級或失能等級！', 'warning');
+                return;
+            }
+
+            let formData = new FormData();
+            formData.append('passengerId', id);
+            formData.append('identityType', idType);
+            formData.append('disabilityLevel', level);
+            formData.append('auditStatus', status);
+
+            fetch('/Home/SubmitAudit', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if(response.ok) {
+                    auditModalInstance.hide();
+                    Swal.fire('核定成功', '該使用者的申請項目、資格條件與審核狀態已同步發布。', 'success')
+                    .then(() => location.reload());
+                } else {
+                    Swal.fire('錯誤', '儲存審核資料失敗。', 'error');
+                }
+            });
+        }
+    </script>
+}

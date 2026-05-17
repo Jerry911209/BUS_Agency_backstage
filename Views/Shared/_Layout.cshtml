@@ -5,7 +5,7 @@
     // 但如果你是想讓某個頁面跳脫母版，則在那頁設定。
     // 這裡我們保留你原本的邏輯。
     Layout = null;
-    
+
     // 取得當前登入者的角色
     var role = Context.Session.GetString("UserRole");
 }
@@ -64,7 +64,11 @@
                                 👥 帳號權限管理
                             </a>
                         </li>
-
+                        <li class="nav-item">
+                            <a class="nav-link " asp-area="" asp-controller="Home" asp-action="AuditList">
+                                📋 服務使用者審核
+                            </a>
+                        </li>
                         @* 新增：公告訊息管理 (CMS) 選項 *@
                         <li class="nav-item">
                             <a class="nav-link" asp-controller="Home" asp-action="AnnouncementList">

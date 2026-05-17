@@ -38,20 +38,6 @@ namespace BUS_Agency_backstage.Controllers
         // 補上這兩行，讓瀏覽器可以直接打開頁面
         [HttpGet]
         public IActionResult Login() => View();
-        // [HttpPost]
-        // public IActionResult Login(string username, string password)
-        // {
-        //     // 關鍵修正：Accounts 是複數 (與 DbContext 裡的 DbSet 一致)
-        //     var user = _db.Accounts.FirstOrDefault(u => u.Username == username && u.PasswordHash == password);
-
-        //     if (user != null)
-        //     {
-        //         HttpContext.Session.SetString("UserRole", "Admin");
-        //         return RedirectToAction("Index");
-        //     }
-        //     ViewBag.Error = "帳號或密碼錯誤";
-        //     return View();
-        // }
         [HttpPost]
         public IActionResult Login(string username, string password)
         {
@@ -59,25 +45,31 @@ namespace BUS_Agency_backstage.Controllers
 
             if (user != null)
             {
-                // 1. 判斷是否為初始密碼 0000
-                if (password == "0000" && user.PasswordHash == "0000")
+                // 💡 規格書防禦重點：如果帳號已經被管理員鎖定，直接拒絕登入
+                if (user.IsLocked == true)
+                {
+                    ViewBag.Error = "該帳號已被鎖定，無法登入系統。請聯絡系統管理員。";
+                    return View();
+                }
+
+                // 🔍 關鍵修正：如果輸入的密碼跟資料庫裡的 PasswordHash 完全一致 (例如都是 19960801)
+                // 代表他使用的是「未加密的生日初始密碼」，強制引導去修改密碼！
+                if (password == user.PasswordHash)
                 {
                     HttpContext.Session.SetString("TempUser", username);
                     return RedirectToAction("ChangePassword");
                 }
 
-                // 2. 一般加密登入驗證
+                // 一般已加密的密碼驗證
                 string hashedInput = HashPassword(password);
                 if (user.PasswordHash == hashedInput)
                 {
-                    // 根據 RoleId 設定對應的權限標籤
-                    string roleLabel = user.RoleId == 1 ? "Super" : (user.RoleId == 5 ? "Admin" : "User");
+                    // 根據 RoleId 給予標籤
+                    string roleLabel = user.RoleId == 1 ? "Super" : (user.RoleId == 2 ? "CenterAdmin" : "Admin");
 
                     HttpContext.Session.SetString("UserRole", roleLabel);
-                    // 關鍵修正：必須存入 UserId，否則你的 DeleteUser 會因為抓不到 currentUserId 而出錯
                     HttpContext.Session.SetString("UserId", user.AccountId.ToString());
 
-                    // --- 核心修正：驗證成功後一定要跳轉到 Index ---
                     return RedirectToAction("Index");
                 }
             }
@@ -248,23 +240,34 @@ namespace BUS_Agency_backstage.Controllers
         }
 
         [HttpPost]
-        public IActionResult CreateUser(string Username, string Password, int RoleId)
-
+        public IActionResult CreateUser(string Username, string Password, int RoleId, string RealName)
         {
+            // 檢查帳號是否重複
+            var exists = _db.Accounts.Any(a => a.Username == Username);
+            if (exists)
+            {
+                ViewBag.Error = "該帳號已被使用，請更換帳號名稱。";
+                return View("Create");
+            }
+
+            // 建立新管理員帳號
             var newAccount = new Account
             {
                 AccountId = Guid.NewGuid(),
                 Username = Username,
-                // 關鍵修正：將明碼加密後再存入[cite: 1]
-                PasswordHash = "0000",
-                RoleId = RoleId,
+
+                // 🔍 關鍵修正：將前端依生日生成的密碼（如 19960801）存入，
+                // 這裡先保持明碼，方便登入時第一步做「初始密碼判斷」
+                PasswordHash = Password,
+
+                RoleId = RoleId, // 隱藏欄位傳過來的 2 (調度中心管理員)
                 IsLocked = false
             };
 
             _db.Accounts.Add(newAccount);
             _db.SaveChanges();
 
-            return RedirectToAction("Index");
+            return RedirectToAction("UserList"); // 建立成功導向使用者列表
         }
         [HttpGet]
         public IActionResult ChangePassword()
@@ -303,13 +306,93 @@ namespace BUS_Agency_backstage.Controllers
             return RedirectToAction("Login");
         }
         // 1. 查詢所有使用者列表
+        // --- 1. 使用者列表頁 (GET) ---
         public IActionResult UserList()
         {
-            if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserRole")))
+            var role = HttpContext.Session.GetString("UserRole");
+            if (string.IsNullOrEmpty(role) || (role != "Super" && role != "Admin" && role != "CenterAdmin"))
+            {
                 return RedirectToAction("Login");
+            }
 
-            var users = _db.Accounts.ToList(); // 抓取所有帳號
+            // 抓取所有帳號供管理員檢視
+            var users = _db.Accounts.ToList();
             return View(users);
+        }
+
+        // --- 2. 密碼初始化功能 (POST) ---
+        // 根據規格書要求，管理員可將特定使用者的密碼「重置為初始狀態」
+        [HttpPost]
+        public IActionResult ResetUserPassword(Guid id, string birthday)
+        {
+            var user = _db.Accounts.Find(id);
+            if (user == null) return NotFound("找不到該使用者");
+
+            if (string.IsNullOrEmpty(birthday))
+            {
+                return BadRequest("必須指定生日作為初始密碼");
+            }
+
+            // 將密碼改回未加密的生日字串（如 19960801），使其下次登入時觸發首次登入改密碼機制
+            user.PasswordHash = birthday.Replace("-", "");
+            _db.SaveChanges();
+
+            return Ok("密碼已重置為該用戶生日：" + user.PasswordHash);
+        }
+
+        // --- 3. 使用者鎖定 / 解鎖功能 (POST) ---
+        // 規格書要求：包含使用者鎖定功能
+        [HttpPost]
+        public IActionResult ToggleUserLock(Guid id)
+        {
+            var user = _db.Accounts.Find(id);
+            if (user == null) return NotFound();
+
+            // 終極安全防禦：最高管理員 (Super) 不可被鎖定
+            if (user.RoleId == 1)
+            {
+                return BadRequest("系統保護：不可鎖定最高管理員。");
+            }
+
+            // 切換鎖定狀態 (true -> false / false -> true)
+            user.IsLocked = !(user.IsLocked ?? false);
+            _db.SaveChanges();
+
+            string statusMessage = user.IsLocked == true ? "帳號已鎖定" : "帳號已解除鎖定";
+            return Ok(statusMessage);
+        }
+
+        // --- 4. 業務人員個人密碼修改功能 (POST) ---
+        // 規格書 C 項：本機關業務人員可透過此功能，進行密碼修改。
+        [HttpPost]
+        public IActionResult UpdateMyPassword(string oldPassword, string newPassword, string confirmPassword)
+        {
+            var currentUserIdStr = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(currentUserIdStr)) return RedirectToAction("Login");
+
+            Guid currentUserId = Guid.Parse(currentUserIdStr);
+            var user = _db.Accounts.Find(currentUserId);
+            if (user == null) return RedirectToAction("Login");
+
+            // 驗證舊密碼是否正確
+            if (user.PasswordHash != HashPassword(oldPassword))
+            {
+                TempData["Error"] = "原密碼輸入錯誤";
+                return RedirectToAction("Index"); // 或返回個人設定頁
+            }
+
+            if (newPassword != confirmPassword)
+            {
+                TempData["Error"] = "兩次新密碼輸入不一致";
+                return RedirectToAction("Index");
+            }
+
+            // 更新並加密新密碼
+            user.PasswordHash = HashPassword(newPassword);
+            _db.SaveChanges();
+
+            TempData["Success"] = "密碼修改成功！";
+            return RedirectToAction("Index");
         }
 
         // 2. 顯示修改使用者頁面 (GET)
@@ -570,6 +653,53 @@ namespace BUS_Agency_backstage.Controllers
 
             _db.SaveChanges(); // 同時儲存任務與預約單狀態變更[cite: 8]
             return RedirectToAction("DispatchList");
+        }
+        // ==========================================
+        // 服務使用者審核功能 (精確對接 PassengerProfile 模型)
+        // ==========================================
+
+        // 1. 檢視所有身心障礙/長照服務使用者申請案列表
+        public IActionResult AuditList()
+        {
+            var role = HttpContext.Session.GetString("UserRole");
+            if (string.IsNullOrEmpty(role) || (role != "Super" && role != "Admin" && role != "CenterAdmin"))
+            {
+                return RedirectToAction("Login");
+            }
+
+            // 撈出所有乘客資料，優先將 0:待審核 排序在最前面
+            var passengers = _db.PassengerProfiles
+                                .OrderBy(p => p.AuditStatus ?? 0)
+                                .ThenBy(p => p.PassengerId)
+                                .ToList();
+
+            return View(passengers);
+        }
+
+        // 2. 異步載入單一申請者的詳細資料 (提供給彈出視窗使用)
+        [HttpGet]
+        public IActionResult GetAuditDetail(Guid id) // 依模型將型別設為 Guid
+        {
+            var passenger = _db.PassengerProfiles.FirstOrDefault(p => p.PassengerId == id);
+            if (passenger == null) return NotFound("找不到該服務使用者");
+
+            return Json(passenger);
+        }
+
+        // 3. 執行是否可以使用之核定及條件設定 (POST AJAX)
+        [HttpPost]
+        public IActionResult SubmitAudit(Guid passengerId, int auditStatus, int identityType, string disabilityLevel)
+        {
+            var passenger = _db.PassengerProfiles.FirstOrDefault(p => p.PassengerId == passengerId);
+            if (passenger == null) return NotFound("找不到該服務使用者");
+
+            // 依照業務人員核定的內容進行條件與狀態變更
+            passenger.AuditStatus = auditStatus;         // 0:待審, 1:通過, 2:駁回
+            passenger.IdentityType = identityType;       // 1:復康(身障), 2:長照(失能)
+            passenger.DisabilityLevel = disabilityLevel; // 障礙等級/失能等級
+
+            _db.SaveChanges();
+            return Ok("服務使用者資格審核與條件設定已順利儲存！");
         }
     }
 }

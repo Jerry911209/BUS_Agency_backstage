@@ -5,13 +5,17 @@
 }
 @using Microsoft.AspNetCore.Http
 @{
-    var currentRole = Context.Session.GetString("UserRole"); // 假設 Login 時存了 "Super" 或 "Admin"
+    // 取得當前登入者的角色與 ID (用於判斷是否顯示鎖定與重置按鈕，以及防止自刪)
+    var currentRole = Context.Session.GetString("UserRole"); 
+    var currentUserId = Context.Session.GetString("UserId");
 }
+
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3>👤 系統使用者管理</h3>
         <a asp-action="CreateUser" class="btn btn-success">+ 新增使用者</a>
     </div>
+    
     <div class="card shadow">
         <table class="table table-hover mb-0">
             <thead class="table-dark">
@@ -29,62 +33,58 @@
                     <tr>
                         <td>@user.Username</td>
                         <td>
-                            @* 關鍵修正：將 RoleId 轉為文字顯示 *@
                             @switch (user.RoleId)
                             {
-                                case 1:
-                                    <span class="badge bg-danger">最高管理員</span>
-                                    break;
-                                case 2:
-
-                                    <span class="badge bg-primary">調度中心管理員</span>
-                                    break;
-                                case 3:
-
-                                    <span class="badge bg-info text-dark">司機</span>
-                                    break;
-                                case 4:
-
-                                    <span class="badge bg-success">一般民眾</span>
-                                    break;
-                                case 5:
-
-                                    <span class="badge bg-warning text-dark">機關管理員</span>
-                                    break;
-                                case 99:
-
-                                    <span class="badge bg-secondary">測試帳號</span>
-                                    break;
-                                default:
-
-                                    <span class="badge bg-light text-dark">未知權限 (@user.RoleId)</span>
-                                    break;
+                                case 1: <span class="badge bg-danger">最高管理員</span> break;
+                                case 2: <span class="badge bg-primary">調度中心管理員</span> break;
+                                case 3: <span class="badge bg-info text-dark">司機</span> break;
+                                case 4: <span class="badge bg-success">一般民眾</span> break;
+                                case 5: <span class="badge bg-warning text-dark">機關管理員</span> break;
+                                case 99: <span class="badge bg-secondary">測試帳號</span> break;
+                                default: <span class="badge bg-light text-dark">未知權限 (@user.RoleId)</span> break;
                             }
                         </td>
-                        <td>@(user.CenterId?.ToString() ?? "未分配")</td>
+                        <td>@(user.CenterId?.ToString() ?? "未分配/總部")</td>
                         <td>
                             @if (user.IsLocked == true)
                             {
-                                <span class="text-danger">● 鎖定</span>
+                                <span class="badge bg-danger">🔒 鎖定</span>
                             }
                             else
                             {
-                                <span class="text-success">● 正常</span>
+                                <span class="badge bg-success">✅ 正常</span>
                             }
                         </td>
                         <td>
                             <div class="btn-group">
-                                @* 1. 判斷是否顯示「修改/刪除」按鈕 *@
-                                @if (currentRole == "Super" || (currentRole == "Admin" && user.RoleId != 1))
+                                @* 判斷目前登入者是否有操作此帳號的權限 (Super 或是 CenterAdmin/Admin 且不為最高管理員) *@
+                                @if (currentRole == "Super" || ((currentRole == "Admin" || currentRole == "CenterAdmin") && user.RoleId != 1))
                                 {
-                                    <a asp-action="EditUser" asp-route-id="@user.AccountId"
-                                       class="btn btn-sm btn-outline-primary">修改</a>
-                                    <button type="button" class="btn btn-sm btn-outline-danger"
-                                            onclick="deleteUser('@user.AccountId', '@user.Username')">刪除</button>
+                                    @* <a asp-action="EditUser" asp-route-id="@user.AccountId" class="btn btn-sm btn-outline-primary">修改</a> *@
+                                    
+                                    @if (user.RoleId != 1)
+                                    {
+                                        <button type="button" class="btn btn-sm @(user.IsLocked == true ? "btn-success" : "btn-outline-secondary")" 
+                                                onclick="toggleLock('@user.AccountId', '@user.Username', @(user.IsLocked == true ? "false" : "true"))">
+                                            @(user.IsLocked == true ? "🔓 解鎖" : "🔒 鎖定")
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-warning" onclick="resetPassword('@user.AccountId', '@user.Username')">
+                                        🔄 重置密碼為生日
+                                        </button>
+                                    }
+
+                                    
+
+                                    @* @if (user.AccountId.ToString() != currentUserId && user.RoleId != 1)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteUser('@user.AccountId', '@user.Username')">
+                                            刪除
+                                        </button>
+                                    } *@
                                 }
                                 else
                                 {
-                                    <span class="text-muted small">無權限操作</span>
+                                    <span class="text-muted small align-self-center ps-2">唯讀 (無操作權限)</span>
                                 }
                             </div>
                         </td>
@@ -96,7 +96,72 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
+        // 1. 異步切換鎖定狀態 (對接後台 ToggleUserLock)
+        function toggleLock(id, name, isToLock) {
+            let actionText = isToLock ? "鎖定" : "解鎖";
+            Swal.fire({
+                title: `確定要${actionText}帳號嗎？`,
+                text: `即將對帳號「${name}」執行${actionText}。被鎖定的帳號將無法登入系統。`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: isToLock ? '#d33' : '#3085d6',
+                cancelButtonColor: '#aaa',
+                confirmButtonText: `確定${actionText}`,
+                cancelButtonText: '取消'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/Home/ToggleUserLock/' + id, { method: 'POST' })
+                    .then(response => {
+                        if (response.ok) return response.text();
+                        return response.text().then(text => { throw new Error(text) });
+                    })
+                    .then(msg => {
+                        Swal.fire('狀態更新成功', msg, 'success').then(() => location.reload());
+                    })
+                    .catch(error => {
+                        Swal.fire('操作失敗', error.message || '發生錯誤', 'error');
+                    });
+                }
+            });
+        }
+
+        // 2. 一鍵初始化帳號密碼為生日 (對接後台 ResetUserPassword)
+        function resetPassword(id, name) {
+            Swal.fire({
+                title: `重置「${name}」的密碼`,
+                text: '請選擇此人員的出生日期，系統將會將密碼回復為生日明碼（例：19980512）並在下次登入時要求其更改：',
+                input: 'date',
+                inputAttributes: { required: 'required' },
+                showCancelButton: true,
+                confirmButtonText: '確定重置',
+                cancelButtonText: '取消',
+                confirmButtonColor: '#f0ad4e',
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    let birthday = result.value; // 格式會是 YYYY-MM-DD
+                    
+                    let formData = new FormData();
+                    formData.append('birthday', birthday);
+
+                    fetch('/Home/ResetUserPassword/' + id, { method: 'POST', body: formData })
+                    .then(response => {
+                        if (response.ok) return response.text();
+                        return response.text().then(text => { throw new Error(text) });
+                    })
+                    .then(msg => {
+                        Swal.fire('密碼已回復', msg, 'success').then(() => location.reload());
+                    })
+                    .catch(error => {
+                        Swal.fire('重置失敗', error.message || '發生未知錯誤', 'error');
+                    });
+                }
+            });
+        }
+
+        // 3. 刪除使用者 (原功能優化)
         function deleteUser(id, name) {
             Swal.fire({
                 title: '確定要刪除使用者嗎？',
@@ -109,16 +174,16 @@
                 cancelButtonText: '取消'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // 使用 fetch 發送 POST 請求到後端
-                    fetch('/Home/DeleteUser/' + id, {
-                        method: 'POST'
-                    }).then(response => {
+                    fetch('/Home/DeleteUser/' + id, { method: 'POST' })
+                    .then(response => {
                         if (response.ok) {
-                            Swal.fire('已刪除', '使用者帳號已移除。', 'success')
-                                .then(() => location.reload());
+                            Swal.fire('已刪除', '使用者帳號已移除。', 'success').then(() => location.reload());
                         } else {
-                            Swal.fire('錯誤', '刪除失敗，該帳號可能有關聯資料。', 'error');
+                            return response.text().then(text => { throw new Error(text) });
                         }
+                    })
+                    .catch(error => {
+                        Swal.fire('錯誤', error.message || '刪除失敗，該帳號可能有關聯業務資料。', 'error');
                     });
                 }
             })
