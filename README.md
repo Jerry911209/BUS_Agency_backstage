@@ -72,19 +72,18 @@
 1. **還原套件與編譯專案**
    ```bash
    dotnet build
+   dotnet watch run
+   dotnet clean
 
-## 執行
-dotnet watch run
-dotnet clean
 ## 相關套件
-code --install-extension ms-ceintl.vscode-language-pack-zh-hant
-code --install-extension ms-dotnettools.csharp
-code --install-extension ms-dotnettools.vscode-dotnet-runtime
-code --install-extension ms-python.python
-code --install-extension ms-python.debugpy
-code --install-extension ms-python.vscode-pylance
-code --install-extension ms-toolsai.jupyter
-code --install-extension ms-mssql.mssql
-code --install-extension ms-mssql.sql-database-projects-vscode
-code --install-extension mechatroner.rainbow-csv
+* code --install-extension ms-ceintl.vscode-language-pack-zh-hant
+* code --install-extension ms-dotnettools.csharp
+* code --install-extension ms-dotnettools.vscode-dotnet-runtime
+* code --install-extension ms-python.python
+* code --install-extension ms-python.debugpy
+* code --install-extension ms-python.vscode-pylance
+* code --install-extension ms-toolsai.jupyter
+* code --install-extension ms-mssql.mssql
+* code --install-extension ms-mssql.sql-database-projects-vscode
+* code --install-extension mechatroner.rainbow-csv
 
