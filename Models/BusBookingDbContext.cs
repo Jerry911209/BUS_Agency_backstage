@@ -20,7 +20,7 @@ public partial class BusBookingDbContext : DbContext
     public virtual DbSet<Announcement> Announcements { get; set; }
 
     public virtual DbSet<Booking> Bookings { get; set; }
-
+    public virtual DbSet<Faq> Faqs { get; set; } = null!;
     public virtual DbSet<DispatchCenter> DispatchCenters { get; set; }
 
     public virtual DbSet<DispatchTask> DispatchTasks { get; set; }

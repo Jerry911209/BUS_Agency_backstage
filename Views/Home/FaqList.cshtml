@@ -1,0 +1,134 @@
+@model IEnumerable<BUS_Agency_backstage.Models.Faq>
+
+@{
+    ViewData["Title"] = "常見問題管理";
+}
+
+<div class="container mt-4">
+    <div class="card shadow mb-4">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">❓ 系統常見問題管理 (FAQ System)</h5>
+            <a asp-action="CreateFaq" class="btn btn-light btn-sm fw-bold text-success">+ 新增常見問題</a>
+        </div>
+        <div class="card-body bg-light">
+            <p class="text-muted mb-0">
+                此處維護的問與答內容將會同步連動至前台民眾端網頁，方便民眾自行查詢預約車輛、補助資格等經常性疑問。
+            </p>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width: 15%;">問題分類</th>
+                        <th style="width: 30%;">經常性問題描述 (Question)</th>
+                        <th style="width: 40%;">官方詳細解答 (Answer)</th>
+                        <th style="width: 15%;" class="text-center">操作面板</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model == null || !Model.Any())
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">目前系統中暫無任何常見問題資料。</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr id="faq-row-@item.FaqId">
+                                <td>
+                                    <span class="badge bg-outline-secondary text-dark border px-3 py-2">@item.Category</span>
+                                </td>
+                                <td class="fw-bold text-dark">@item.Question</td>
+                                <td class="text-secondary small" style="white-space: pre-line;">@item.Answer</td>
+                                <td class="text-center">
+                                    <button onclick="openEditModal(@item.FaqId)" class="btn btn-sm btn-outline-primary me-1">✏️
+                                        編輯</button>
+                                        <button onclick="deleteFaq(@item.FaqId)" class="btn btn-sm btn-danger">🗑️ 刪除</button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editFaqModal" tabindex="-1" aria-labelledby="editFaqModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="editFaqModalLabel">📝 修改常見問題 (FAQ)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                </div>
+                <form asp-action="EditFaq" method="post">
+                    <div class="modal-body">
+                        <input type="hidden" id="editFaqId" name="FaqId" />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">問答歸屬分類</label>
+                            <select id="editCategory" name="Category" class="form-select" required>
+                                <option value="帳號與權限">🔐 帳號與權限相關</option>
+                                <option value="車輛預約">🚌 預約與派車流程</option>
+                                <option value="資格審核">📋 補助與身分資格</option>
+                                <option value="其他問題">💡 其他一般性諮詢</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">經常性問題描述 (Question)</label>
+                            <input type="text" id="editQuestion" name="Question" class="form-control" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">整理後官方答案 (Answer)</label>
+                            <textarea id="editAnswer" name="Answer" class="form-control" rows="5" required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary fw-bold">儲存變更</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // 🌟 一鍵非同步刪除
+        function deleteFaq(id) {
+        if (confirm('確定要永久刪除這則常見問題解答嗎？前台民眾將無法再查詢此內容。')) {
+        $.post('/Home/DeleteFaq', { id: id }, function () {
+        alert('問與答資料已順利刪除！');
+        $('#faq-row-' + id).remove();
+        }).fail(function () {
+        alert('刪除失敗，請確認與資料庫的連線狀態。');
+        });
+        }
+        }
+
+        // 🌟 點擊編輯時：異步去後端撈取這一筆資料，填入彈出視窗並亮出來
+        function openEditModal(id) {
+        $.get('/Home/GetFaqDetail', { id: id }, function (data) {
+        // 將資料塞入 Modal 的 input 欄位中
+        $('#editFaqId').val(data.faqId);
+        $('#editCategory').val(data.category);
+        $('#editQuestion').val(data.question);
+        $('#editAnswer').val(data.answer);
+
+        // 顯示彈出視窗
+        var myModal = new bootstrap.Modal(document.getElementById('editFaqModal'));
+        myModal.show();
+        }).fail(function () {
+        alert('無法載入該筆 FAQ 詳細資料！');
+        });
+        }
+    </script>

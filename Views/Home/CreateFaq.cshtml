@@ -1,0 +1,44 @@
+@model BUS_Agency_backstage.Models.Faq
+
+@{
+    ViewData["Title"] = "新增常見問題";
+}
+
+<div class="container mt-4" style="max-width: 700px;">
+    <div class="card shadow border-success">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">➕ 建立新常見問題 (FAQ)</h5>
+        </div>
+        <div class="card-body p-4">
+            <form asp-action="SaveFaq" method="post">
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-dark">一、 選擇問答歸屬分類</label>
+                    <select asp-for="Category" class="form-select" required>
+                        <option value="帳號與權限">🔐 帳號與權限相關</option>
+                        <option value="車輛預約">預約與派車流程</option>
+                        <option value="資格審核">📋 補助與身分資格</option>
+                        <option value="其他問題">💡 其他一般性諮詢</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Question" class="form-label fw-bold text-dark">二、 經常性問題描述 (Question)</label>
+                    <input type="text" asp-for="Question" class="form-control" placeholder="例如：忘記初始密碼該怎麼辦？" required />
+                    <span asp-validation-for="Question" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="Answer" class="form-label fw-bold text-dark">三、 整理後官方答案 (Answer)</label>
+                    <textarea asp-for="Answer" class="form-control" rows="6" placeholder="請詳細條列說明官方正確的解決步驟與聯絡電話..." required></textarea>
+                    <span asp-validation-for="Answer" class="text-danger small"></span>
+                </div>
+
+                <div class="d-flex justify-content-between border-top pt-3">
+                    <a asp-action="FaqList" class="btn btn-outline-secondary px-4">取消返回</a>
+                    <button type="submit" class="btn btn-success px-4 fw-bold">確認儲存發布</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

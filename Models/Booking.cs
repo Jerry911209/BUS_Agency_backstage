@@ -23,6 +23,7 @@ public partial class Booking
 
     public bool? IsRoundTrip { get; set; }
 
+    public DateTime? CreatedAt { get; set; } // 或是 CreatedAt，請依據妳實際產生的欄位名稱為準
     public virtual ICollection<DispatchTask> DispatchTasks { get; set; } = new List<DispatchTask>();
 
     public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();

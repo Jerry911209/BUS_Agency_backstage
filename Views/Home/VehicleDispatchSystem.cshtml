@@ -1,0 +1,44 @@
+@{
+    ViewData["Title"] = "車輛調度系統 - 模組建置中";
+}
+
+<div class="container mt-5 text-center">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0 p-5 bg-light">
+                <div class="card-body">
+                    <div class="mb-4 text-primary">
+                        <i class="fas fa-cogs fa-spin" style="font-size: 5rem;"></i>
+                    </div>
+                    
+                    <h3 class="card-title fw-bold text-dark mb-3">🛠️ 車輛調度系統模組建置中</h3>
+                    
+                    <p class="card-text text-muted fs-5 mb-4">
+                        本機關智慧車輛調度與路網優化模組，目前正由協同開發人員進行資料庫底層核心對接與前端畫面渲染中。
+                    </p>
+                    
+                    <div class="progress mb-4" style="height: 25px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                             role="progressbar" 
+                             style="width: 75%;" 
+                             aria-valuenow="75" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                             後端資料鏈結中 75%
+                        </div>
+                    </div>
+                    
+                    <div class="text-secondary small mb-4">
+                        <i class="fas fa-info-circle"></i> 提示：本區塊為系統架構預留點。待協同組員完成車流演算法後，即可一鍵無縫接入。
+                    </div>
+                    
+                    <div class="border-top pt-4">
+                        <a asp-action="Index" class="btn btn-dark px-4 fw-bold">↩️ 返回系統首頁</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />

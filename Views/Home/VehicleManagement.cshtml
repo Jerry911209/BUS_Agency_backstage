@@ -3,7 +3,7 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between mb-3">
         <h3>🚚 車輛管理</h3>
-        <a asp-action="EditVehicle" class="btn btn-success">+ 新增車輛</a>
+        @* <a asp-action="EditVehicle" class="btn btn-success">+ 新增車輛</a> *@
     </div>
 
     <table class="table table-hover shadow-sm border">
@@ -41,14 +41,14 @@
                             <span class="badge bg-danger">報廢</span>
                         }
                     </td>
-                    <td>
+                    @* <td>
                         <div class="btn-group">
                             <a asp-action="EditVehicle" asp-route-id="@item.VehicleId"
                                class="btn btn-sm btn-outline-primary">修改</a>
                             <button onclick="deleteVehicle(@item.VehicleId)"
                                     class="btn btn-sm btn-outline-danger">刪除</button>
                         </div>
-                    </td>
+                    </td> *@
                 </tr>
             }
         </tbody>

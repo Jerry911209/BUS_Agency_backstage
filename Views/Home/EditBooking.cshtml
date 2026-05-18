@@ -6,34 +6,54 @@
             <h5>✏️ 編輯預約單 - #@Model.BookingId</h5>
         </div>
         <div class="card-body">
+            @if (ViewBag.Error != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    ⚠️ <strong>儲存失敗：</strong> @ViewBag.Error
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
             <form asp-action="EditBooking" method="post">
                 <input type="hidden" asp-for="BookingId" />
-                
+
                 <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">乘客姓名 (輸入搜尋)</label>
-                        <input type="text" name="passengerName" id="pSearch" class="form-control" autocomplete="off" />
-                        <ul id="pList" class="list-group position-absolute w-50 shadow"
-                            style="display:none; z-index:1000;"></ul>
+                    <div class="col-md-6 mb-3 position-relative">
+                        <label class="form-label fw-bold">乘客姓名 (自動預填，輸入可搜尋變更)</label>
+                        <input type="text" name="passengerName" id="pSearch" class="form-control"
+                               value="@ViewBag.OriginalPassengerName" placeholder="請輸入乘客姓名搜尋..." autocomplete="off"
+                               required />
+
+                        <ul id="pList" class="list-group position-absolute w-100 shadow"
+                            style="display:none; z-index:1000; left: 0; right: 0; padding: 0 12px;"></ul>
                     </div>
-                    @* 找到原本的目前狀態輸入區塊並替換 *@
+
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">目前狀態</label>
+                        <label class="form-label fw-bold">目前狀態</label>
                         <select asp-for="BookingStatus" class="form-select">
-                            <option value="0">待審核</option>
-                            <option value="1">已排班</option>
-                            <option value="2">已取消</option>
-                            <option value="3">補件中</option>
-                            <option value="4">已駁回</option>
+                            <option value="0">⏳ 待審核 / 待排班</option>
+                            <option value="1">🚌 已排班 / 已派車</option>
+                            <option value="2">✅ 已完乘</option>
+                            <option value="3">📎 補件中</option>
+                            <option value="4">❌ 已駁回 / 調度失敗</option>
+                            <option value="5">⏳ 後補逾時失效</option>
+                            <option value="6">⚠️ 已過期 (超時未派遣)</option>
                         </select>
                     </div>
+
                     <div class="col-md-12 mb-3">
-                        <label class="form-label">搭乘時間</label>
-                        <input asp-for="PickupTime" type="datetime-local" class="form-control" />
+                        <label class="form-label fw-bold">搭乘時間</label>
+                        <input asp-for="PickupTime" type="datetime-local" class="form-control" required />
+                        <div class="form-text text-muted">注意：修改後的乘車時間必須大於當前系統時間。</div>
                     </div>
-                    @* ...其餘地址欄位... *@
+
+                    @* ...其餘地址與類型欄位維持原本的... *@
                 </div>
-                <button type="submit" class="btn btn-primary mt-3">儲存變更</button>
+
+                <div class="d-flex justify-content-between border-top pt-3 mt-3">
+                    <a asp-action="Index" class="btn btn-outline-secondary px-4">取消返回</a>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold">儲存變更</button>
+                </div>
             </form>
         </div>
     </div>
@@ -41,13 +61,39 @@
 
 @section Scripts {
     <script>
-        $('#pSearch').on('input', function () {
-            let q = $(this).val();
-            if (q.length < 1) { $('#pList').hide(); return; }
-            $.get('/Home/GetPassengerList', { query: q }, function (data) {
-                let h = '';
-                data.forEach(i => h += `<li class="list-group-item list-group-item-action" onclick="$('#pSearch').val('${i.username}'); $('#pList').hide();">${i.username}</li>`);
-                $('#pList').html(h).show();
+        $(document).ready(function () {
+            // 當管理員在輸入框裡面打字時，即時觸發非同步搜尋
+            $('#pSearch').on('input', function () {
+                let q = $(this).val().trim();
+
+                // 如果字數被清空，自動隱藏下拉選單
+                if (q.length < 1) {
+                    $('#pList').hide();
+                    return;
+                }
+
+                // 發送 GET 請求去後端撈取相符乘客
+                $.get('/Home/GetPassengerList', { query: q }, function (data) {
+                    let h = '';
+                    if (data && data.length > 0) {
+                        data.forEach(i => {
+                            // 點選列表內的人名後，自動填入文字框，並將清單隱藏
+                            h += `<li class="list-group-item list-group-item-action" style="cursor:pointer;" onclick="$('#pSearch').val('${i.username}'); $('#pList').hide();">${i.username}</li>`;
+                        });
+                        $('#pList').html(h).show();
+                    } else {
+                        // 找不到相符姓名時顯示提示
+                        h = '<li class="list-group-item text-muted small">🔍 找不到相符的乘客帳號</li>';
+                        $('#pList').html(h).show();
+                    }
+                });
+            });
+
+            // 點擊網頁其他空白處時，自動把搜尋清單收起來（提升體驗）
+            $(document).on('click', function (e) {
+                if (!$(e.target).closest('#pSearch, #pList').length) {
+                    $('#pList').hide();
+                }
             });
         });
     </script>
