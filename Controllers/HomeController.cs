@@ -1138,7 +1138,26 @@ namespace BUS_Agency_backstage.Controllers
             }
             return BadRequest("資料驗證失敗");
         }
+        // 導向車輛調度主面板
+        [HttpGet]
+        public IActionResult VehicleDispatchSystem()
+        {
+            // 安全防禦：沒登入直接踢回登入頁
+            if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserRole")))
+                return RedirectToAction("Login");
 
+            return View(); // 會自動尋找 Views/Home/VehicleDispatchSystem.cshtml
+        }
+
+        // 導向資料庫瀏覽面板 (選填，如果有需要的話)
+        [HttpGet]
+        public IActionResult DatabaseViewer()
+        {
+            if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserRole")))
+                return RedirectToAction("Login");
+
+            return View(); // 會自動尋找 Views/Home/DatabaseViewer.cshtml
+        }
         /// <summary>
         /// [POST AJAX] 異步永久移除特定的常見問題問答項目
         /// </summary>
@@ -1158,18 +1177,18 @@ namespace BUS_Agency_backstage.Controllers
         // 🔀 【預留新功能】車輛調度系統 (等待隊友對接中)
         // 邏輯：基本 Session 權限檢查，通過後導向預留的未完成提示視圖
         // =========================================================================
-        [HttpGet]
-        public IActionResult VehicleDispatchSystem()
-        {
-            // 安全防禦：沒登入直接踢回登入頁
-            var role = HttpContext.Session.GetString("UserRole");
-            if (string.IsNullOrEmpty(role))
-            {
-                return RedirectToAction("Login");
-            }
+        // [HttpGet]
+        // public IActionResult VehicleDispatchSystem()
+        // {
+        //     // 安全防禦：沒登入直接踢回登入頁
+        //     var role = HttpContext.Session.GetString("UserRole");
+        //     if (string.IsNullOrEmpty(role))
+        //     {
+        //         return RedirectToAction("Login");
+        //     }
 
-            return View(); // 導向 VehicleDispatchSystem.cshtml
-        }
+        //     return View(); // 導向 VehicleDispatchSystem.cshtml
+        // }
         #endregion
     }
 }
