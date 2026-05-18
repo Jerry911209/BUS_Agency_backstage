@@ -1,13 +1,5 @@
 # 🚌 智慧巴士與復康乘車營運後台管理系統 (BUS Agency Backstage)
 
-<p align="center">
-  <img src="https://octodex.github.com/images/codercat.jpg" width="250" alt="Coder Octocat"/>
-  <br>
-  <img src="https://img.shields.io/badge/.NET%20Core-8.0-blue?style=for-the-badge&logo=dotnet" alt="Dotnet 8"/>
-  <img src="https://img.shields.io/badge/Database-SQL%20Server-red?style=for-the-badge&logo=microsoft-sql-server" alt="SQL Server"/>
-  <img src="https://img.shields.io/badge/Frontend-Bootstrap%205-purple?style=for-the-badge&logo=bootstrap" alt="Bootstrap 5"/>
-</p>
-
 ## 📌 專案簡介
 本專案為針對 **機關復康巴士、長照失能巴士** 所設計的智慧化營運後台管理系統。採用 **ASP.NET Core MVC** 架構開發，骨幹連結遠端資料庫進行高可靠性的即時乘車預約、運力派遣、服務資格核定與跨區域數據稽核。
 
@@ -80,3 +72,19 @@
 1. **還原套件與編譯專案**
    ```bash
    dotnet build
+
+## 執行
+dotnet watch run
+dotnet clean
+## 相關套件
+code --install-extension ms-ceintl.vscode-language-pack-zh-hant
+code --install-extension ms-dotnettools.csharp
+code --install-extension ms-dotnettools.vscode-dotnet-runtime
+code --install-extension ms-python.python
+code --install-extension ms-python.debugpy
+code --install-extension ms-python.vscode-pylance
+code --install-extension ms-toolsai.jupyter
+code --install-extension ms-mssql.mssql
+code --install-extension ms-mssql.sql-database-projects-vscode
+code --install-extension mechatroner.rainbow-csv
+
