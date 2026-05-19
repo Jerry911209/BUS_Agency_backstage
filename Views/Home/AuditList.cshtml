@@ -5,13 +5,30 @@
 }
 
 <div class="container mt-4">
+    <div class="card shadow-sm mb-4 border-start border-primary border-4">
+        <div class="card-body bg-light">
+            <div class="row align-items-center">
+                <div class="col-md-6 col-lg-4">
+                    <label class="form-label fw-bold text-secondary small">⏳ 到期狀況快速篩選</label>
+                    <select id="expiryFilter" class="form-select" onchange="filterTableByExpiry()">
+                        <option value="all">🔍 顯示全部使用者 (無限制)</option>
+                        <option value="expiring30">⚠️ 篩選：30 天內即將到期者</option>
+                    </select>
+                </div>
+                <div class="col-md-6 col-lg-8 pt-4">
+                    <span id="filterNotice" class="text-muted small"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card shadow">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">📋 服務使用者資格審核與條件設定</h5>
             <span class="badge bg-secondary">本機關業務人員專用管理區</span>
         </div>
         <div class="card-body p-0">
-            <table class="table table-hover table-striped mb-0 align-middle">
+            <table class="table table-hover table-striped mb-0 align-middle" id="passengerTable">
                 <thead class="table-light">
                     <tr>
                         <th>申請人姓名</th>
@@ -35,7 +52,6 @@
                     {
                         @foreach (var item in Model)
                         {
-                            // 在迴圈最上方處理完所有純 C# 運算邏輯，避免與下方的 HTML 標籤混雜
                             int age = 0;
                             if (item.BirthDate.HasValue)
                             {
@@ -50,7 +66,6 @@
                                 maskedId = item.IdentityNo.Substring(0, 4) + "***" + item.IdentityNo.Substring(item.IdentityNo.Length - 3);
                             }
 
-                            // 透過 C# 8.0 表達式提早決定狀態文字與樣式
                             int currentStatus = item.AuditStatus ?? 0;
                             string statusBadgeClass = currentStatus switch
                             {
@@ -65,13 +80,19 @@
                                 _ => "⏳ 0:待審核"
                             };
 
-                            <tr>
+                            // 在 tr 綁定 data-expiry 屬性，方便 JS 進行動態比對 (格式為 YYYY-MM-DD)
+                            string expiryString = item.ExpiryDate.HasValue ? item.ExpiryDate.Value.ToString("yyyy-MM-dd") : "9999-12-31";
+
+                            <tr class="passenger-row" data-expiry="@expiryString">
                                 <td><strong>@item.RealName</strong></td>
                                 <td><code>@maskedId</code></td>
                                 <td>
-                                    @if(item.BirthDate.HasValue) {
+                                    @if (item.BirthDate.HasValue)
+                                    {
                                         <span>@age 歲 <small class="text-muted">(@item.BirthDate.Value.ToString("yyyy-MM-dd"))</small></span>
-                                    } else {
+                                    }
+                                    else
+                                    {
                                         <span class="text-muted small">未提供</span>
                                     }
                                 </td>
@@ -121,7 +142,6 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="modalPassengerId" />
-                
                 <p><strong>申請人姓名：</strong> <span id="lblRealName" class="text-dark font-weight-bold"></span></p>
                 <p><strong>通訊地址：</strong> <span id="lblAddress" class="text-muted small"></span></p>
                 <p><strong>證明到期日：</strong> <span id="lblExpiryDate" class="text-danger small"></span></p>
@@ -134,7 +154,7 @@
                         <option value="2">核定為：2 - 長照交通接送服務 (失能接送資格)</option>
                     </select>
                 </div>
-
+                
                 <div class="mb-3">
                     <label class="form-label font-weight-bold text-secondary">二、 障礙等級 / 失能等級條件設定 (DisabilityLevel)</label>
                     <select id="ddlLevel" class="form-select">
@@ -146,6 +166,7 @@
                             <option value="極重度">極重度</option>
                         </optgroup>
                         <optgroup label="長照失能等級 (長照接送適用)" id="groupLongTermCare">
+                            <option value="第1級">第1級</option>
                             <option value="第2級">第2級</option>
                             <option value="第3級">第3級</option>
                             <option value="第4級">第4級</option>
@@ -156,7 +177,7 @@
                         </optgroup>
                     </select>
                 </div>
-
+                
                 <div class="mb-3">
                     <label class="form-label font-weight-bold text-secondary">三、 審核結論決定 (AuditStatus)</label>
                     <select id="ddlStatus" class="form-select">
@@ -178,15 +199,26 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         let auditModalInstance;
-        
+
         document.addEventListener("DOMContentLoaded", function () {
             auditModalInstance = new bootstrap.Modal(document.getElementById('auditModal'));
         });
 
-        // 智慧型優化：當業務切換第一個下拉選單時，自動幫他聚焦適當的群組（非必選，但能提升易用性）
+        // 🌟 智慧連動核心：根據核定項目一，自動對第二區的 optgroup 進行遮蔽與過濾
         function toggleLevelOptions() {
             let identityType = document.getElementById('ddlIdentityType').value;
-            // 這裡可以選擇不做事讓他們並存，或是提示選取
+            let groupDisability = document.getElementById('groupDisability');
+            let groupLongTermCare = document.getElementById('groupLongTermCare');
+
+            if (identityType == "1") {
+                // 核定為 1 (復康)：只出現身心障礙群組，長照隱藏
+                groupDisability.style.display = "";
+                groupLongTermCare.style.display = "none";
+            } else if (identityType == "2") {
+                // 核定為 2 (長照)：只出現長照失能等級群組，身障隱藏
+                groupDisability.style.display = "none";
+                groupLongTermCare.style.display = "";
+            }
         }
 
         // 開啟視窗並透過 AJAX 發送 PassengerId 抓取單一乘客明細
@@ -199,26 +231,73 @@
                 document.getElementById('lblAddress').innerText = data.address || "未提供地址";
                 document.getElementById('lblExpiryDate').innerText = data.expiryDate || "永久有效";
                 
-                // 填入資料庫現有條件設定（若無預設為1）
-                document.getElementById('ddlIdentityType').value = (data.identityType == null || data.identityType == 0) ? 1 : data.identityType;
+                // 1. 設定項目一 (IdentityType)
+                let idType = (data.identityType == null || data.identityType == 0) ? 1 : data.identityType;
+                document.getElementById('ddlIdentityType').value = idType;
                 
-                // 完美配對：直接讓 select 匹配資料庫裡原本存的字串（例如 "中度" 或 "第4級"）
+                // 2. 🎯 關鍵連動點火：設定完種類後，立刻呼叫隱藏/顯示規則，避免群組錯亂
+                toggleLevelOptions();
+                
+                // 3. 設定項目二 (DisabilityLevel)
                 document.getElementById('ddlLevel').value = data.disabilityLevel || "";
                 
+                // 4. 設定項目三 (AuditStatus)
                 document.getElementById('ddlStatus').value = data.auditStatus ?? 0;
                 
                 auditModalInstance.show();
             });
         }
 
+        // 前端 30 天到期動態計算濾鏡引擎
+        function filterTableByExpiry() {
+            const filterValue = document.getElementById('expiryFilter').value;
+            const rows = document.querySelectorAll('.passenger-row');
+            const notice = document.getElementById('filterNotice');
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const maxDate = new Date();
+            maxDate.setDate(today.getDate() + 30);
+            maxDate.setHours(23, 59, 59, 999);
+
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const expiryAttr = row.getAttribute('data-expiry');
+                if (filterValue === 'all') {
+                    row.style.display = '';
+                    visibleCount++;
+                } else if (filterValue === 'expiring30') {
+                    if (expiryAttr && expiryAttr !== '9999-12-31') {
+                        const expireDate = new Date(expiryAttr);
+                        if (expireDate >= today && expireDate <= maxDate) {
+                            row.style.display = '';
+                            visibleCount++;
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            });
+
+            if (filterValue === 'expiring30') {
+                notice.innerHTML = `<span class="badge bg-warning text-dark">已篩選：目前系統共有 ${visibleCount} 筆證照即將在 30 天內到期。</span>`;
+            } else {
+                notice.innerHTML = '';
+            }
+        }
+
         // 非同步儲存審核結論與條件設定
         function submitAuditResult() {
             let id = document.getElementById('modalPassengerId').value;
             let idType = document.getElementById('ddlIdentityType').value;
-            let level = document.getElementById('ddlLevel').value; // 改抓 select 的值
+            let level = document.getElementById('ddlLevel').value;
             let status = document.getElementById('ddlStatus').value;
 
-            if(!level) {
+            if (!level) {
                 Swal.fire('欄位未選', '請務必選擇該服務使用者的障礙等級或失能等級！', 'warning');
                 return;
             }
@@ -234,7 +313,7 @@
                 body: formData
             })
             .then(response => {
-                if(response.ok) {
+                if (response.ok) {
                     auditModalInstance.hide();
                     Swal.fire('核定成功', '該使用者的申請項目、資格條件與審核狀態已同步發布。', 'success')
                     .then(() => location.reload());

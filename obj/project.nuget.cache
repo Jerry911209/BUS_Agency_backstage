@@ -1,11 +1,14 @@
 {
   "version": 2,
-  "dgSpecHash": "8hw0RZRwvZk=",
+  "dgSpecHash": "7gSjvt1iFm8=",
   "success": true,
   "projectFilePath": "C:\\Users\\jerry\\OneDrive\\桌面\\git\\Topics\\BUS_Agency_backstage\\BUS_Agency_backstage.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\jerry\\.nuget\\packages\\anglesharp\\0.17.1\\anglesharp.0.17.1.nupkg.sha512",
+    "C:\\Users\\jerry\\.nuget\\packages\\anglesharp.css\\0.17.0\\anglesharp.css.0.17.0.nupkg.sha512",
     "C:\\Users\\jerry\\.nuget\\packages\\azure.core\\1.47.1\\azure.core.1.47.1.nupkg.sha512",
     "C:\\Users\\jerry\\.nuget\\packages\\azure.identity\\1.14.2\\azure.identity.1.14.2.nupkg.sha512",
+    "C:\\Users\\jerry\\.nuget\\packages\\htmlsanitizer\\9.0.892\\htmlsanitizer.9.0.892.nupkg.sha512",
     "C:\\Users\\jerry\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\jerry\\.nuget\\packages\\microsoft.bcl.asyncinterfaces\\8.0.0\\microsoft.bcl.asyncinterfaces.8.0.0.nupkg.sha512",
     "C:\\Users\\jerry\\.nuget\\packages\\microsoft.bcl.cryptography\\9.0.4\\microsoft.bcl.cryptography.9.0.4.nupkg.sha512",

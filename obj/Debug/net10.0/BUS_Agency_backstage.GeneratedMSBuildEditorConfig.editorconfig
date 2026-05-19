@@ -42,10 +42,6 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxDaGFuZ2VQYXNzd29yZC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Home/Create.cshtml]
-build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxDcmVhdGUuY3NodG1s
-build_metadata.AdditionalFiles.CssScope = 
-
 [C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Home/CreateAnnouncement.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxDcmVhdGVBbm5vdW5jZW1lbnQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
@@ -56,6 +52,10 @@ build_metadata.AdditionalFiles.CssScope =
 
 [C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Home/CreateFaq.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxDcmVhdGVGYXEuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Home/CreateUser.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxDcmVhdGVVc2VyLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Home/DatabaseViewer.cshtml]
@@ -104,6 +104,10 @@ build_metadata.AdditionalFiles.CssScope =
 
 [C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Home/Statistics.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxTdGF0aXN0aWNzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Home/SystemLogList.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxTeXN0ZW1Mb2dMaXN0LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/jerry/OneDrive/桌面/git/Topics/BUS_Agency_backstage/Views/Home/UserList.cshtml]

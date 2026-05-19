@@ -1,0 +1,109 @@
+@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = "新增調度中心系統管理人員";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white">
+                    <h4 class="mb-0">新增機關中心系統管理人員</h4>
+                </div>
+                <div class="card-body">
+                    <form id="userForm">
+                        <div class="mb-3">
+                            <label class="form-label">登入帳號 (Username)</label>
+                            <input type="text" id="Username" name="Username" class="form-control" placeholder="請輸入英文或數字帳號" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">管理員姓名 (Real Name)</label>
+                            <input type="text" id="RealName" name="RealName" class="form-control" placeholder="請輸入姓名" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">出生日期 (用於生成初始密碼)</label>
+                            <input type="date" id="birthdayInput" class="form-control" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-muted">預設登入密碼 (根據生日自動生成)</label>
+                            <input type="text" id="passwordDisplay" name="Password" class="form-control bg-light"
+                                   value="請先選擇生日" readonly
+                                   style="cursor: not-allowed; font-weight: bold; color: #0d6efd;" />
+                            <small class="form-text text-info">
+                                <i class="bi bi-info-circle"></i> 初始密碼預設為管理員生日 (西元年 YYYYMMDD)。
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">所屬調度中心</label>
+                            <select id="CenterId" name="CenterId" class="form-select" required>
+                                <option value="" disabled selected>-- 請選擇所屬調度中心 --</option>
+                                @if (ViewBag.CenterList != null)
+                                {
+                                    foreach (var center in (List<BUS_Agency_backstage.Models.DispatchCenter>)ViewBag.CenterList)
+                                    {
+                                        <option value="@center.CenterId">@center.CenterName</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+
+                        <input type="hidden" name="RoleId" value="5" />
+                        
+                        <div class="mb-4">
+                            <label class="form-label text-muted">設定帳號權限</label>
+                            <input type="text" class="form-control bg-light" value="5 - 機關管理員" readonly style="cursor: not-allowed;" />
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Index" class="btn btn-secondary">返回列表</a>
+                            <button type="button" id="btnSubmit" class="btn btn-success">確認新增帳號</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // 1. 生日自動生成密碼
+            $('#birthdayInput').on('change', function () {
+                let dateVal = $(this).val(); 
+                if (dateVal) {
+                    let formattedPwd = dateVal.replace(/-/g, '');
+                    $('#passwordDisplay').val(formattedPwd);
+                } else {
+                    $('#passwordDisplay').val('請先選擇生日');
+                }
+            });
+
+            // 2. AJAX 提交表單
+            $('#btnSubmit').click(function () {
+                // 簡單的前端防呆
+                if (!$('#Username').val() || $('#passwordDisplay').val() === '請先選擇生日') {
+                    alert("請確實填寫帳號並選擇生日！");
+                    return;
+                }
+
+                let formData = $('#userForm').serialize();
+
+                $.post('/Home/CreateUser', formData, function (response) {
+                    if (response.success) {
+                        alert(response.message); // 顯示成功訊息
+                        window.location.href = '@Url.Action("UserList", "Home")'; // 跳轉回列表頁
+                    } else {
+                        alert(response.message); // 彈窗顯示錯誤 (帳號重複)
+                    }
+                }).fail(function () {
+                    alert("伺服器連線異常，請稍後再試。");
+                });
+            });
+        });
+    </script>
+}

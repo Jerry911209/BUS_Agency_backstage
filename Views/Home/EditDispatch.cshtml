@@ -16,7 +16,8 @@
                         <option value="">-- 請選擇 --</option>
                         @foreach (var b in ViewBag.Bookings as List<BUS_Agency_backstage.Models.Booking>)
                         {
-                            <option value="@b.BookingId">單號: @b.BookingId | 時間: @b.PickupTime?.ToString("MM/dd HH:mm")</option>
+                            <option value="@b.BookingId">單號: @b.BookingId | 時間: @b.PickupTime?.ToString("MM/dd HH:mm")
+                            </option>
                         }
                     </select>
                 </div>
@@ -28,7 +29,20 @@
                             <option value="">-- 請選擇 --</option>
                             @foreach (var v in ViewBag.Vehicles as List<BUS_Agency_backstage.Models.Vehicle>)
                             {
-                                <option value="@v.VehicleId">@v.PlateNo (@v.VehicleType)</option>
+                                // 利用我們剛才在 Model 擴充的 IsAvailable 屬性
+                                bool isDisabled = !v.IsAvailable;
+
+                                // 狀態說明文字
+                                string statusText = v.Status switch
+                                {
+                                    1 => " (維修中)",
+                                    2 => " (報廢)",
+                                    _ => ""
+                                };
+
+                                <option value="@v.VehicleId" disabled="@(isDisabled ? "disabled" : null)">
+                                    @v.PlateNo (@v.VehicleType) @statusText
+                                </option>
                             }
                         </select>
                     </div>

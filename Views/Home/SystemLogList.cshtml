@@ -1,0 +1,30 @@
+@model IEnumerable<BUS_Agency_backstage.Models.SystemLog>
+
+<div class="container mt-4">
+    <h3>📋 系統操作紀錄 (Log)</h3>
+    <table class="table table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>時間</th>
+                <th>操作者</th>
+                <th>類型</th>
+                <th>對象</th>
+                <th>詳細內容</th>
+                <th>IP</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var log in Model)
+            {
+                <tr>
+                    <td>@log.LogDate.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                    <td>@log.AdminName</td>
+                    <td><span class="badge bg-info">@log.ActionType</span></td>
+                    <td>@log.TargetObject</td>
+                    <td>@log.Content</td>
+                    <td>@log.IPAddress</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

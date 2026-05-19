@@ -1,13 +1,68 @@
-<h2 class="mt-4">📊 報表統計</h2>
+<h2 class="mt-4">📊 營運報表統計</h2>
+
 <div class="row mt-4">
-    <div class="col-md-6">
-        <div class="card">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary">
             <div class="card-body">
-                <h5 class="card-title">本月服務人次</h5>
-                <p class="display-4 text-primary">@ViewBag.TotalBookings</p>
+                <h5>總預約數</h5>
+                <p class="display-4">@ViewBag.TotalBookings</p>
             </div>
         </div>
     </div>
-    
+    <div class="col-md-4">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5>後補中案件</h5>
+                <p class="display-4">@ViewBag.WaitingFailed</p>
+            </div>
+        </div>
+    </div>
 </div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-dark text-white">地區叫車缺口排行 (前5名)</div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    @foreach (var item in ViewBag.AreaGap)
+                    {
+                        <tr>
+                            <td>@item.Area</td>
+                            <td><span class="badge bg-danger">@item.Count 件</span></td>
+                        </tr>
+                    }
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-info text-white">年齡層貢獻度分析</div>
+            <div class="card-body">
+                <table class="table table-hover table-sm">
+                    <thead>
+                        <tr>
+                            <th>區間</th>
+                            <th>人數</th>
+                            <th>訂單</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in ViewBag.AgeStats)
+                        {
+                            <tr>
+                                <td>@item.AgeRange</td>
+                                <td>@item.PassengerCount</td>
+                                <td>@item.TotalOrders</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
 <button class="btn btn-success mt-4">📥 匯出 Excel 報表</button>

@@ -14,7 +14,8 @@ public partial class BusBookingDbContext : DbContext
         : base(options)
     {
     }
-
+    // 🌟 新增這一行
+    public DbSet<SystemLog> SystemLogs { get; set; }
     public virtual DbSet<Account> Accounts { get; set; }
 
     public virtual DbSet<Announcement> Announcements { get; set; }

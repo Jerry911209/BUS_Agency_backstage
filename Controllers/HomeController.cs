@@ -6,11 +6,16 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
+using Ganss.Xss; // 確保安裝了 HtmlSanitizer 套件
+using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace BUS_Agency_backstage.Controllers
 {
+
     public class HomeController : Controller
     {
+        // 宣告一個實例，可以放在 Controller 的全域位置或直接在方法內宣告
+        private readonly HtmlSanitizer _sanitizer = new HtmlSanitizer();
         // 資料庫上下文唯讀變數，用來與資料庫進行 Entity Framework 連線操作
         private readonly BusBookingDbContext _db;
 
@@ -81,46 +86,114 @@ namespace BUS_Agency_backstage.Controllers
         /// [GET] 顯示管理員登入網頁畫面
         /// </summary>
         [HttpGet]
-        public IActionResult Login() => View();
+        public IActionResult Login(string error)
+        {
+            if (error == "YourAccountHasBeenLocked")
+            {
+                ViewBag.ErrorMessage = "您的帳號已被鎖定或權限變更，請重新登入或聯絡管理員。";
+            }
+            return View();
+        }
 
         /// <summary>
-        /// [POST] 處理登入驗證邏輯
-        /// 功能：包含初始密碼明碼生日攔截（強制改密碼）、SHA256 密碼雜湊比對、權限標籤寫入 Session 暫存
+        /// [POST] 處理登入表單的提交驗證邏輯 (🌟 100% 完美對接原本的 ChangePassword 流程)
         /// </summary>
         [HttpPost]
         public IActionResult Login(string username, string password)
         {
-            // 依據前端輸入的帳號名稱去資料庫撈取相對應的使用者資料
-            var user = _db.Accounts.FirstOrDefault(u => u.Username == username);
-
-            if (user != null)
+            // 防呆：基本欄位檢查
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
-                // 🔍 初始密碼判斷：若輸入的明文密碼跟資料庫欄位完全一致 (例如未改過的初始生日 19960801)
-                // 代表該帳號是第一次登入，強制攔截並把帳號寫入臨時 Session，直接重導向至首次改密碼頁面
-                if (password == user.PasswordHash)
+                ViewBag.Error = "請輸入完整帳號與密碼";
+                return View();
+            }
+
+            // 1. 將使用者輸入的明文密碼進行 SHA256 加密雜湊
+            string hashedPassword = HashPassword(password);
+
+            // 2. 先從資料庫撈出使用者
+            var account = _db.Accounts.FirstOrDefault(a => a.Username == username);
+
+            // 如果找不到帳號，直接提示通用錯誤
+            if (account == null)
+            {
+                ViewBag.Error = "帳號或密碼錯誤";
+                return View();
+            }
+
+            // 🚨 資安關卡一：檢查是否已被鎖定 (精確相容 bool? 型態，null 視為 false 未鎖定)
+            if (account.IsLocked.GetValueOrDefault(false) == true)
+            {
+                ViewBag.Error = "❌ 警告：此帳號因密碼連續輸入錯誤達 3 次以上，已被系統強制鎖定！請聯絡最高系統管理員協助解鎖。";
+                return View();
+            }
+
+            // 🚨 資安關卡二：身分權限過濾 (身分不是 1 且 不是 5 的人，直接擋在門外)
+            int userRoleId = account.RoleId ?? 5;
+            if (userRoleId != 1 && userRoleId != 5)
+            {
+                ViewBag.Error = "⛔ 權限不足：您的帳號身分不屬於「系統管理員」或「營運商車隊」，無法登入大後台管理系統！";
+                return View();
+            }
+
+            // 3. 核心驗證：密碼對比 (同時比對雜湊密文與初始明文)
+            if (account.PasswordHash == hashedPassword || account.PasswordHash == password)
+            {
+                // 🔓 驗證通過：密碼對了，立刻清除登入失敗的次數暫存
+                string failedSessionKey = $"LoginFailedCount_{username}";
+                HttpContext.Session.Remove(failedSessionKey);
+
+                // 🌟 核心機制：判斷是不是初始登入者（資料庫內依然存著明文密碼，尚未雜湊加密）
+                if (account.PasswordHash == password)
                 {
-                    HttpContext.Session.SetString("TempUser", username);
+                    // 🎯 完全對接妳的原本邏輯：設定 TempUser 暫存，強制過渡去改密碼
+                    HttpContext.Session.SetString("TempUser", account.Username);
+
+                    // 🔀 攔截！直接導向妳原本就有的 ChangePassword 頁面
                     return RedirectToAction("ChangePassword");
                 }
 
-                // 一般常規登入驗證：將使用者輸入的密碼進行 SHA256 加密，再與資料庫的密碼進行比對
-                string hashedInput = HashPassword(password);
-                if (user.PasswordHash == hashedInput)
-                {
-                    // 依據 RoleId 代碼給予相對應的文字權限標籤 (1:最高管理員 Super, 2:調度中心 CenterAdmin, 其餘:一般管理員 Admin)
-                    string roleLabel = user.RoleId == 1 ? "Super" : (user.RoleId == 2 ? "CenterAdmin" : "Admin");
+                // --------- 正常登入流程（已經改過密碼、符合加密規範的人） ---------
+                // 寫入正式登入 Session 權限識別機制
+                HttpContext.Session.SetString("Username", account.Username);
+                HttpContext.Session.SetString("UserRole", userRoleId == 1 ? "Admin" : "CenterAdmin");
+                HttpContext.Session.SetString("CenterID", account.CenterId?.ToString() ?? "0");
+                HttpContext.Session.SetString("UserId", account.AccountId.ToString());
 
-                    // 將正式的權限角色與唯一識別碼寫入 Session，做為後續每個網頁防禦檢查的依據
-                    HttpContext.Session.SetString("UserRole", roleLabel);
-                    HttpContext.Session.SetString("UserId", user.AccountId.ToString());
+                // 記錄最後登入 IP，並確保將鎖定狀態初始化為 false
+                account.IsLocked = false;
+                // account.LastLoginIP = HttpContext.Connection.RemoteIpAddress?.ToString();
 
-                    return RedirectToAction("Index"); // 驗證通關，導向後台儀表板首頁
-                }
+                _db.Entry(account).Property(a => a.IsLocked).IsModified = true;
+                _db.SaveChanges(); // 存回 SQL Server 實體庫
+
+                return RedirectToAction("Index");
             }
+            else
+            {
+                // 🔒 密碼輸入錯誤！啟動連續錯 3 次鎖定機制
+                string failedSessionKey = $"LoginFailedCount_{username}";
+                int failedCount = HttpContext.Session.GetInt32(failedSessionKey) ?? 0;
+                failedCount++;
 
-            // 帳號密碼不符合，回傳錯誤提示訊息給前端登入視圖
-            ViewBag.Error = "帳號或密碼錯誤";
-            return View();
+                HttpContext.Session.SetInt32(failedSessionKey, failedCount);
+
+                if (failedCount >= 3)
+                {
+                    // 連續錯 3 次，立刻修改資料庫實體狀態為 true
+                    account.IsLocked = true;
+                    _db.Entry(account).Property(a => a.IsLocked).IsModified = true;
+                    _db.SaveChanges();
+                    AddSystemLog("系統安全鎖定", account.Username, "因密碼輸入錯誤達 3 次，帳號已被系統自動鎖定。");
+                    ViewBag.Error = "❌ 錯誤次數過多！此帳號密碼已連續打錯 3 次，系統已將其強制鎖定，目前已無法登入。";
+                }
+                else
+                {
+                    ViewBag.Error = $"帳號或密碼錯誤！（您還剩下 {3 - failedCount} 次嘗試機會，連續錯誤 3 次將鎖定帳號）";
+                }
+
+                return View();
+            }
         }
 
         /// <summary>
@@ -147,7 +220,39 @@ namespace BUS_Agency_backstage.Controllers
             var bookings = _db.Bookings.ToList();
             return View(bookings);
         }
+        public override void OnActionExecuting(Microsoft.AspNetCore.Mvc.Filters.ActionExecutingContext context)
+        {
+            // var actionName = context.RouteData.Values["action"]?.ToString();
 
+            // // ✨【修正：徹底放行登入流程】如果目前執行的 Action 是 Login，絕對不進行檢查，直接放行
+            // if (string.Equals(actionName, "Login", StringComparison.OrdinalIgnoreCase))
+            // {
+            //     base.OnActionExecuting(context);
+            //     return;
+            // }
+
+            // // 抓取小寫的 username
+            // var sessionUsername = HttpContext.Session.GetString("username");
+
+            // // ✨【修正：防護】如果 Session 根本是空的，代表根本還沒登入，交給各個 Action 原本的檢查機制，攔截器直接放行
+            // if (string.IsNullOrEmpty(sessionUsername))
+            // {
+            //     base.OnActionExecuting(context);
+            //     return;
+            // }
+
+            // // 只有當使用者「已經登入 (Session 有值)」時，才去後台檢查他是不是中途被黑名單/停權
+            // var account = _db.Accounts.AsNoTracking().FirstOrDefault(a => a.Username == sessionUsername);
+
+            // if (account == null || account.IsLocked == true)
+            // {
+            //     HttpContext.Session.Clear();
+            //     context.Result = new RedirectToActionResult("Login", "Home", new { error = "YourAccountHasBeenLocked" });
+            //     return;
+            // }
+
+            // base.OnActionExecuting(context);
+        }
         /// <summary>
         /// [GET] 登出系統
         /// 功能：完全清空當前瀏覽器持有的所有 Session 暫存資料，確保系統安全，並引導回登入畫面
@@ -157,35 +262,125 @@ namespace BUS_Agency_backstage.Controllers
             HttpContext.Session.Clear(); // 澈底清除所有 Session 欄位
             return RedirectToAction("Login");
         }
+        /// <summary>
+        /// 統一紀錄系統操作日誌
+        /// </summary>
+        /// <param name="actionType">操作類型 (如：變更權限、鎖定帳號、刪除使用者)</param>
+        /// <param name="targetObject">操作對象 (如：Username)</param>
+        /// <param name="content">詳細操作描述</param>
+        // 在 HomeController 裡微調這個方法
+        private void AddSystemLog(string actionType, string targetObject, string content)
+        {
+            // 嘗試從 Session 抓取，如果抓不到 (代表是登入失敗時)，就找一個系統預設的 ID 或填入 null
+            var adminIdStr = HttpContext.Session.GetString("UserId");
+            var adminName = HttpContext.Session.GetString("Username") ?? "系統自動程式";
+
+            // 如果沒有 UserId (例如登入失敗時)，我們賦予一個預設值或是跳過 Guid 解析
+            Guid adminId = Guid.TryParse(adminIdStr, out var id) ? id : Guid.Empty;
+
+            var log = new SystemLog
+            {
+                AdminID = adminId, // 如果是系統觸發，這裡可以是空的或預設的 GUID
+                AdminName = adminName,
+                ActionType = actionType,
+                TargetObject = targetObject,
+                Content = content,
+                IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                LogDate = DateTime.Now
+            };
+
+            _db.SystemLogs.Add(log);
+            _db.SaveChanges();
+        }
+        [HttpGet]
+        public IActionResult SystemLogList()
+        {
+            // 檢查權限：只有管理員能看
+            var role = HttpContext.Session.GetString("UserRole");
+            if (role != "Super" && role != "Admin") return RedirectToAction("Login");
+
+            var logs = _db.SystemLogs.OrderByDescending(l => l.LogDate).ToList();
+            return View(logs);
+        }
         #endregion
 
         #region 【模組二：使用者與權限管理】
         // =========================================================================
         // 👤 本機關業務人員與管理員帳號之維護、鎖定切換、密碼重置與修改
         // =========================================================================
+        // private bool IsCurrentAccountLocked()
+        // {
+        //     var username = HttpContext.Session.GetString("Username");
+        //     if (string.IsNullOrEmpty(username)) return true; // 沒登入視為鎖定
 
-        /// <summary>
-        /// [GET] 查詢並顯示內部系統所有使用者 / 管理員之帳號列表
-        /// 權限控管：限制只有 Super、Admin、CenterAdmin 才能檢視此管理清單
-        /// </summary>
+        //     // 從資料庫即時撈取該帳號最新狀態
+        //     var account = _db.Accounts.FirstOrDefault(a => a.Username == username);
+
+        //     // 如果帳號不存在 或 被鎖定，則回傳 true
+        //     return account == null || account.IsLocked.GetValueOrDefault(false);
+        // }
+
+        public class LockoutCheckFilter : ActionFilterAttribute
+        {
+            public override void OnActionExecuting(ActionExecutingContext context)
+            {
+                var controller = context.Controller as Controller;
+                var session = controller.HttpContext.Session;
+
+                // 如果 Session 存在但帳號在資料庫已鎖定，強制登出
+                if (!string.IsNullOrEmpty(session.GetString("Username")))
+                {
+                    // 這裡直接執行類似 IsCurrentAccountLocked() 的邏輯
+                    // 若發現鎖定，執行 context.Result = new RedirectToActionResult("Login", "Home", null);
+                }
+                base.OnActionExecuting(context);
+            }
+        }
+        [HttpGet]
         public IActionResult UserList()
         {
             var role = HttpContext.Session.GetString("UserRole");
+            var centerIdStr = HttpContext.Session.GetString("CenterID");
+
+            // 1. 權限檢查：只有這三種身分能進來
             if (string.IsNullOrEmpty(role) || (role != "Super" && role != "Admin" && role != "CenterAdmin"))
             {
                 return RedirectToAction("Login");
             }
 
-            var users = _db.Accounts.ToList(); // 撈取全部帳號資料
+            // 2. 核心邏輯：依身分過濾
+            IQueryable<Account> query = _db.Accounts;
+
+            if (role == "Super" || role == "Admin")
+            {
+                // 管理員看全部
+            }
+            else if (role == "CenterAdmin")
+            {
+                // 營運商/中心管理員：只撈取對應 CenterId 的資料
+                if (int.TryParse(centerIdStr, out int myCenterId))
+                {
+                    query = query.Where(a => a.CenterId == myCenterId);
+                }
+                else
+                {
+                    // 如果中心ID異常，回傳空列表避免越權
+                    query = query.Where(a => false);
+                }
+            }
+
+            var users = query.ToList();
             return View(users);
         }
-
         /// <summary>
         /// [GET] 開啟並顯示建立新管理員 / 業務使用者帳號的表單頁面
         /// </summary>
+        [HttpGet]
         public IActionResult CreateUser()
         {
-            return View("Create");
+            // 撈出所有調度中心資料，丟給前端做下拉選單
+            ViewBag.CenterList = _db.DispatchCenters.ToList();
+            return View();
         }
 
         /// <summary>
@@ -193,32 +388,59 @@ namespace BUS_Agency_backstage.Controllers
         /// 邏輯：檢查帳號重複性、配置全新 GUID 主鍵、將前端依據生日填寫的預設明碼字串存入密碼欄位
         /// </summary>
         [HttpPost]
-        public IActionResult CreateUser(string Username, string Password, int RoleId, string RealName)
+        // public IActionResult CreateUser(string Username, string Password, int RoleId, int? CenterId)
+        // {
+        //     var exists = _db.Accounts.Any(a => a.Username == Username);
+        //     if (exists)
+        //     {
+        //         ViewBag.Error = "該帳號已被使用，請更換帳號名稱。";
+        //         ViewBag.CenterList = _db.DispatchCenters.ToList();
+        //         return View();
+        //     }
+
+        //     var newAccount = new Account
+        //     {
+        //         AccountId = Guid.NewGuid(),
+        //         Username = Username,
+        //         PasswordHash = Password,
+        //         RoleId = RoleId,
+        //         CenterId = CenterId, // 確保這欄有對應到資料庫
+        //         IsLocked = false
+        //     };
+
+        //     _db.Accounts.Add(newAccount);
+        //     _db.SaveChanges();
+        //     AddSystemLog("新增帳號", newAccount.Username, $"新增了機關管理員帳號: {newAccount.Username}, 權限 RoleId: {newAccount.RoleId}");
+        //     return RedirectToAction("UserList");
+        // }
+        [HttpPost]
+        public IActionResult CreateUser(string Username, string Password, int RoleId, int? CenterId)
         {
-            // 防呆防重複：檢查前端輸入的帳號名稱是否已經在資料庫存在
+            // 檢查帳號是否重複
             var exists = _db.Accounts.Any(a => a.Username == Username);
             if (exists)
             {
-                ViewBag.Error = "該帳號已被使用，請更換帳號名稱。";
-                return View("Create");
+                // 回傳 JSON 物件，success: false 代表失敗
+                return Json(new { success = false, message = "該帳號已被使用，請更換帳號名稱。" });
             }
 
-            // 實例化全新帳號物件
             var newAccount = new Account
             {
-                AccountId = Guid.NewGuid(),  // 生成不重複的唯一識別識別碼
+                AccountId = Guid.NewGuid(),
                 Username = Username,
-                PasswordHash = Password,     // 根據規格書，初始密碼直接存明碼生日（例如 19960801），登入判斷用
+                PasswordHash = HashPassword(Password), // 記得使用你原本定義的雜湊方法
                 RoleId = RoleId,
-                IsLocked = false             // 預設為啟用、未鎖定狀態
+                CenterId = CenterId,
+                IsLocked = false
             };
 
             _db.Accounts.Add(newAccount);
-            _db.SaveChanges(); // 儲存至資料庫
+            _db.SaveChanges();
+            AddSystemLog("新增帳號", newAccount.Username, $"新增了機關管理員帳號: {newAccount.Username}");
 
-            return RedirectToAction("UserList"); // 建立完成後導回使用者清單
+            // 回傳 success: true，讓前端導向列表頁
+            return Json(new { success = true, message = "帳號新增成功！" });
         }
-
         /// <summary>
         /// [GET] 顯示編輯特定使用者帳號細節的頁面
         /// </summary>
@@ -267,7 +489,7 @@ namespace BUS_Agency_backstage.Controllers
             var targetUser = _db.Accounts.Find(id);
             if (targetUser == null) return NotFound();
 
-            // 核心保護：無論是誰發起請求，一律絕對禁止刪除最高管理員 (Root) 帳號，防範系統癱瘓
+            // 核心保護：禁止刪除最高管理員
             if (targetUser.RoleId == 1)
             {
                 return BadRequest("系統保護：禁止刪除最高管理員 (Root) 帳號。");
@@ -275,15 +497,27 @@ namespace BUS_Agency_backstage.Controllers
 
             var currentRole = HttpContext.Session.GetString("UserRole");
             var currentUserId = HttpContext.Session.GetString("UserId");
+            var currentUsername = HttpContext.Session.GetString("Username"); // 建議順便取得操作者名稱
 
-            // 安全機制：一般系統管理員 (Admin) 絕對不可以使用刪除按鈕把當前自己的登入帳號刪掉
+            // 安全機制：不可刪除自己
             if (currentRole == "Admin" && targetUser.AccountId.ToString() == currentUserId)
             {
-                return BadRequest("安全限制：系統管理員不可刪除自已。");
+                return BadRequest("安全限制：系統管理員不可刪除自己。");
             }
+
+            // 儲存刪除前的帳號名稱，供 Log 使用
+            string deletedUsername = targetUser.Username;
 
             _db.Accounts.Remove(targetUser);
             _db.SaveChanges(); // 執行刪除
+
+            // 📝 補寫系統 Log (確保在資料庫刪除後仍能記錄)
+            AddSystemLog(
+                "刪除帳號",
+                $"被刪除帳號: {deletedUsername}",
+                $"管理員 {currentUsername} (ID: {currentUserId}) 刪除了帳號: {deletedUsername}"
+            );
+
             return Ok();
         }
 
@@ -309,7 +543,6 @@ namespace BUS_Agency_backstage.Controllers
             var username = HttpContext.Session.GetString("TempUser");
             if (string.IsNullOrEmpty(username)) return RedirectToAction("Login");
 
-            // 檢查密碼與確認密碼是否一致
             if (newPassword != confirmPassword)
             {
                 ViewBag.Error = "兩次密碼輸入不一致";
@@ -319,13 +552,30 @@ namespace BUS_Agency_backstage.Controllers
             var user = _db.Accounts.FirstOrDefault(u => u.Username == username);
             if (user != null)
             {
-                // 對新密碼進行雜湊加密
+                // 🌟 1. 在寫 Log 之前，先把 UserID 寫入 Session，確保 AddSystemLog 抓得到
+                HttpContext.Session.SetString("UserId", user.AccountId.ToString());
+
+                // 2. 現在呼叫 AddSystemLog 就不會因為抓不到 UserId 而報錯了
+                AddSystemLog("密碼變更", username, "使用者自行變更了登入密碼。");
+
+                // 3. 更新密碼
                 user.PasswordHash = HashPassword(newPassword);
+
+                // 4. 注意：如果你在 AddSystemLog 裡面已經呼叫過 SaveChanges()
+                // 這裡只需要再存一次 user 的變更即可
                 _db.SaveChanges();
 
-                // 移除暫存的未通關標記，正式補上 UserRole 使其直接登入後台系統
+                // 正式登入流程
                 HttpContext.Session.Remove("TempUser");
-                HttpContext.Session.SetString("UserRole", "Admin");
+                HttpContext.Session.SetString("Username", user.Username);
+
+                // 根據 RoleId 設定正確的 Role 字串
+                string roleName = (user.RoleId == 1) ? "Admin" : "CenterAdmin";
+                HttpContext.Session.SetString("UserRole", roleName);
+
+                // 同步寫入 CenterID
+                HttpContext.Session.SetString("CenterID", user.CenterId?.ToString() ?? "0");
+
                 return RedirectToAction("Index");
             }
 
@@ -347,8 +597,10 @@ namespace BUS_Agency_backstage.Controllers
             // 將生日日期格式中的 "-" 去除（例如 1996-08-01 轉化為 19960801 明碼），寫回資料庫
             user.PasswordHash = birthday.Replace("-", "");
             _db.SaveChanges();
+            AddSystemLog("重置密碼", user.Username, $"將帳號 {user.Username} 的密碼重置為生日格式");
 
             return Ok("密碼已重置為該用戶生日：" + user.PasswordHash);
+
         }
 
         /// <summary>
@@ -361,17 +613,34 @@ namespace BUS_Agency_backstage.Controllers
             var user = _db.Accounts.Find(id);
             if (user == null) return NotFound();
 
-            // 防禦機制：系統保護，任何人都沒有資格去鎖定最高管理員的帳號
             if (user.RoleId == 1) return BadRequest("系統保護：不可鎖定最高管理員。");
 
-            // 鎖定狀態取反向值進行一切換 (true 變 false，false 變 true)
-            user.IsLocked = !(user.IsLocked ?? false);
+            // 1. 修改狀態
+            bool newStatus = !(user.IsLocked.GetValueOrDefault(false));
+            user.IsLocked = newStatus;
+
+            // 2. 加入 Log (注意：AddSystemLog 內部要把 SaveChanges 拿掉，改在這邊統一執行)
+            // 這裡我們不呼叫 AddSystemLog，而是直接在這邊建立 Log 物件，確保在同一個交易內
+            var adminId = Guid.Parse(HttpContext.Session.GetString("UserId"));
+            var log = new SystemLog
+            {
+                AdminID = adminId,
+                AdminName = HttpContext.Session.GetString("Username") ?? "管理員",
+                ActionType = "帳號狀態變更",
+                TargetObject = user.Username,
+                Content = $"將帳號 {user.Username} 的鎖定狀態切換為 {(newStatus ? "鎖定" : "解鎖")}",
+                IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                LogDate = DateTime.Now
+            };
+
+            _db.SystemLogs.Add(log);
+
+            // 3. 統一存檔 (這時候 Account 的修改 與 SystemLogs 的新增會一起送入資料庫)
             _db.SaveChanges();
 
-            string statusMessage = user.IsLocked == true ? "帳號已鎖定" : "帳號已解除鎖定";
+            string statusMessage = newStatus ? "帳號已鎖定" : "帳號已解除鎖定";
             return Ok(statusMessage);
         }
-
         /// <summary>
         /// [POST] 本機關業務人員個人端獨立密碼變更功能
         /// 規格書 C 項：本機關業務人員可透過此功能，輸入原密碼比對正確後，進行密碼自主變更。
@@ -406,6 +675,52 @@ namespace BUS_Agency_backstage.Controllers
 
             TempData["Success"] = "密碼修改成功！";
             return RedirectToAction("Index");
+        }
+        /// <summary>
+        /// [GET] 服務使用者資格審核名冊 (✅ 已對齊系統權限設定)
+        /// </summary>
+        [HttpGet]
+        public IActionResult PassengerProfileList()
+        {
+            var userRole = HttpContext.Session.GetString("UserRole");
+            var sessionCenterId = HttpContext.Session.GetString("CenterID");
+            // 🌟 將偵錯資訊存入 TempData (只會顯示一次)
+            // TempData["DebugInfo"] = $"身分: {userRole ?? "無"}, 中心ID: {sessionCenterId ?? "無"}";
+            // 驗證登入
+            if (string.IsNullOrEmpty(userRole))
+            {
+                return RedirectToAction("Login");
+            }
+
+            IQueryable<PassengerProfile> query = _db.PassengerProfiles.Include(p => p.Account).AsNoTracking();
+
+            // 🎯 核心修正：對齊妳現有的權限字串 "CenterAdmin"
+            if (userRole == "Admin" || userRole == "Super")
+            {
+                // 最高權限者：看全區，不做任何限制
+            }
+            else if (userRole == "CenterAdmin")
+            {
+                // 🏢 特定中心管理員：執行 Row-Level Security
+                if (!string.IsNullOrEmpty(sessionCenterId) && int.TryParse(sessionCenterId, out int targetCenterId))
+                {
+                    query = query.Where(p => p.AccountId != null &&
+                                             p.Account != null &&
+                                             p.Account.CenterId.GetValueOrDefault() == targetCenterId);
+                }
+                else
+                {
+                    // 若 CenterID 異常，為了安全，回傳空清單避免越權
+                    query = query.Where(p => false);
+                }
+            }
+            else
+            {
+                // 身分不符直接拒絕
+                return Content("權限不足：您沒有訪問此頁面的權限。");
+            }
+
+            return View(query.ToList());
         }
         #endregion
 
@@ -633,8 +948,20 @@ namespace BUS_Agency_backstage.Controllers
                 return RedirectToAction("Login");
             }
 
-            var vehicles = _db.Vehicles.ToList();
-            return View(vehicles);
+            // 統一使用新的查詢邏輯
+            var vehiclesWithStats = _db.Vehicles
+                .Select(v => new
+                {
+                    Vehicle = v,
+                    ViolationCount = _db.DrivingBehaviors.Count(db => db.VehicleId == v.VehicleId)
+                })
+                .ToList();
+
+            // 存入 ViewBag 給 View 使用
+            ViewBag.VehiclesWithStats = vehiclesWithStats;
+
+            // 注意：這裡直接 return View()，不要傳參數，因為我們改用 ViewBag 了
+            return View();
         }
 
         /// <summary>
@@ -774,18 +1101,31 @@ namespace BUS_Agency_backstage.Controllers
         [HttpPost]
         public IActionResult SaveDispatch(DispatchTask model)
         {
-            if (model.TaskId == 0) _db.DispatchTasks.Add(model);
-            else _db.DispatchTasks.Update(model);
+            // 1. 取得選擇的車輛進行驗證
+            var vehicle = _db.Vehicles.Find(model.VehicleId);
 
-            // 🌟 系統自動關聯更新：找到當前被分派的這張原始預約單
-            var booking = _db.Bookings.Find(model.BookingId);
-            if (booking != null)
+            // 2. 防禦性檢查：若車輛存在且 IsAvailable 為 false，直接擋下
+            if (vehicle != null && !vehicle.IsAvailable)
             {
-                booking.BookingStatus = 1; // 連動更新狀態代碼為 1 (已排班/指派成功)
+                // 紀錄非法操作到 System_Logs
+                AddSystemLog("非法指派", "Task-" + model.TaskId,
+                             $"嘗試指派狀態為 {vehicle.Status} 的車輛 {vehicle.PlateNo}");
+
+                // 回傳錯誤並重新載入 View
+                ViewBag.Error = "⚠️ 指派失敗：該車輛目前處於維修或報廢狀態，無法指派。";
+                ViewBag.Bookings = _db.Bookings.ToList();
+                ViewBag.Vehicles = _db.Vehicles.ToList();
+                ViewBag.Drivers = _db.Drivers.ToList();
+                return View(model);
             }
 
-            _db.SaveChanges(); // 同時寫入調度表與更新預約狀態
-            return RedirectToAction("DispatchList");
+            // 3. 執行正常指派流程
+            _db.DispatchTasks.Add(model);
+            _db.SaveChanges();
+
+            AddSystemLog("指派任務", "Task-" + model.TaskId, $"成功指派車輛 {vehicle?.PlateNo} 給司機 {model.DriverId}");
+
+            return RedirectToAction("Index");
         }
 
         /// <summary>
@@ -937,23 +1277,49 @@ namespace BUS_Agency_backstage.Controllers
         /// </summary>
         public IActionResult Statistics()
         {
+            // 權限檢查
             if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserRole")))
                 return RedirectToAction("Login");
 
-            // 數據庫計數統計
+            // 1. 基礎狀態統計
             ViewBag.TotalBookings = _db.Bookings.Count();
             ViewBag.FailedBookings = _db.Bookings.Count(b => b.BookingStatus == 4);
             ViewBag.WaitingFailed = _db.Bookings.Count(b => b.BookingStatus == 5);
 
-            // 🌟 供需缺口演算法優化：將調度失敗(4)、後補失效(5)以及因為沒人理而超時過期(6)的預約單整合在一起
-            // 依上車地址前三個字分組統計，精確定位出最缺乏車輛資源、叫不到車的供需缺口黑名單排行
-            var areaGap = _db.Bookings
-                .Where(b => b.BookingStatus == 4 || b.BookingStatus == 5 || b.BookingStatus == 6)
+            // 2. 供需缺口統計 (使用群組化後直接排序)
+            ViewBag.AreaGap = _db.Bookings
+                .Where(b => b.BookingStatus == 2 || b.BookingStatus == 5)
                 .GroupBy(b => b.PickupAddr.Substring(0, 3))
                 .Select(g => new { Area = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
                 .ToList();
 
-            ViewBag.AreaGap = areaGap;
+            // 3. 穩定版：年齡與訂單關聯統計
+            // 步驟 A: 先把「乘客ID」與「訂單數」的對應關係在資料庫算好
+            var passengerOrderMap = _db.Bookings
+                .GroupBy(b => b.PassengerId)
+                .Select(g => new { PassengerId = g.Key, OrderCount = g.Count() })
+                .ToList();
+
+            // 步驟 B: 將乘客基本資料與上述映射表結合 (在記憶體中處理以避開翻譯錯誤)
+            var today = DateTime.Today;
+            ViewBag.AgeStats = _db.PassengerProfiles
+                .ToList() // 轉入記憶體處理，避免複雜表達式翻譯錯誤
+                .Select(p => new
+                {
+                    Age = today.Year - p.BirthDate.Value.Year,
+                    // 找對應的訂單數，找不到則為 0
+                    OrderCount = passengerOrderMap.FirstOrDefault(m => m.PassengerId == p.PassengerId)?.OrderCount ?? 0
+                })
+                .GroupBy(x => (x.Age / 10) * 10)
+                .Select(g => new
+                {
+                    AgeRange = $"{g.Key}-{g.Key + 9} 歲",
+                    TotalOrders = g.Sum(x => x.OrderCount),
+                    PassengerCount = g.Count()
+                })
+                .OrderBy(x => x.AgeRange)
+                .ToList();
 
             return View();
         }
@@ -1022,17 +1388,25 @@ namespace BUS_Agency_backstage.Controllers
         [HttpPost]
         public IActionResult SaveAnnouncement(Announcement model, string Category)
         {
-            if (model.PostId == 0) // 新增
+            // 🛡️ 過濾 XSS 攻擊碼
+            model.Title = _sanitizer.Sanitize(model.Title);
+            model.Content = _sanitizer.Sanitize(model.Content); // 假設有 Content 欄位
+
+            if (model.PostId == 0)
             {
-                // 自動將下拉選單分類前綴（如：[營運公告]）與主題字串結合成完整的 Title
                 model.Title = $"[{Category}] {model.Title}";
                 _db.Announcements.Add(model);
             }
-            else // 修改
+            else
             {
-                _db.Announcements.Update(model);
+                // 為了避免 EntityState 導致不必要的欄位更新，建議先取出來再更新
+                var existing = _db.Announcements.Find(model.PostId);
+                if (existing != null)
+                {
+                    existing.Title = model.Title;
+                    existing.Content = model.Content;
+                }
             }
-
             _db.SaveChanges();
             return RedirectToAction("AnnouncementList");
         }
@@ -1041,6 +1415,7 @@ namespace BUS_Agency_backstage.Controllers
         /// [POST AJAX] 永久刪除或下架特定的公告消息
         /// </summary>
         [HttpPost]
+        [ValidateAntiForgeryToken] // 🛡️ 防止 CSRF 攻擊
         public IActionResult DeleteAnnouncement(int id)
         {
             var post = _db.Announcements.Find(id);
@@ -1048,6 +1423,7 @@ namespace BUS_Agency_backstage.Controllers
             {
                 _db.Announcements.Remove(post);
                 _db.SaveChanges();
+                AddSystemLog("刪除公告", post.Title, $"管理員刪除了公告：{post.Title}");
                 return Ok();
             }
             return NotFound();
@@ -1097,9 +1473,13 @@ namespace BUS_Agency_backstage.Controllers
         {
             if (ModelState.IsValid)
             {
-                model.CreatedDate = DateTime.Now; // 自動在後端指派當前的系統時間做為 FAQ 創立時間
+                // 🛡️ 過濾 FAQ 中的 XSS
+                model.Question = _sanitizer.Sanitize(model.Question);
+                model.Answer = _sanitizer.Sanitize(model.Answer);
+
+                model.CreatedDate = DateTime.Now;
                 _db.Faqs.Add(model);
-                _db.SaveChanges(); // 資料庫存檔
+                _db.SaveChanges();
                 return RedirectToAction("FaqList");
             }
             return View("CreateFaq", model);
@@ -1126,14 +1506,14 @@ namespace BUS_Agency_backstage.Controllers
             if (ModelState.IsValid)
             {
                 var dbEntry = _db.Faqs.Find(model.FaqId);
-                if (dbEntry == null) return NotFound("找不到該筆常見問題");
+                if (dbEntry == null) return NotFound();
 
-                // 更新分類、經常性問題描述與官方解答欄位
-                dbEntry.Category = model.Category;
-                dbEntry.Question = model.Question;
-                dbEntry.Answer = model.Answer;
+                // 🛡️ 過濾編輯的內容
+                dbEntry.Category = _sanitizer.Sanitize(model.Category);
+                dbEntry.Question = _sanitizer.Sanitize(model.Question);
+                dbEntry.Answer = _sanitizer.Sanitize(model.Answer);
 
-                _db.SaveChanges(); // 正式寫入存檔
+                _db.SaveChanges();
                 return RedirectToAction("FaqList");
             }
             return BadRequest("資料驗證失敗");
