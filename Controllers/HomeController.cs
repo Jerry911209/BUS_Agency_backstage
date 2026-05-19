@@ -1187,15 +1187,27 @@ namespace BUS_Agency_backstage.Controllers
         [HttpPost]
         public IActionResult SubmitAudit(Guid passengerId, int auditStatus, int identityType, string disabilityLevel)
         {
+            // 正確的邏輯順序
             var passenger = _db.PassengerProfiles.FirstOrDefault(p => p.PassengerId == passengerId);
-            if (passenger == null) return NotFound("找不到該服務使用者");
+            if (passenger == null) return NotFound();
 
-            // 變更核定欄位
-            passenger.AuditStatus = auditStatus;         // 0:待審, 1:核准通過可搭車, 2:駁回
-            passenger.IdentityType = identityType;       // 1:復康身障, 2:長照巴士
-            passenger.DisabilityLevel = disabilityLevel; // 殘障等級備註
+            // 1. 先抓取舊值
+            string oldStatus = passenger.AuditStatus?.ToString() ?? "未審";
+            string oldLevel = passenger.DisabilityLevel ?? "未填";
 
-            _db.SaveChanges(); // 存檔
+            // 2. 進行變更
+            passenger.AuditStatus = auditStatus;
+            passenger.IdentityType = identityType;
+            passenger.DisabilityLevel = disabilityLevel;
+
+            // 3. 執行儲存
+            _db.SaveChanges();
+
+            // 4. 定義操作者名稱並寫 Log
+            var operatorName = HttpContext.Session.GetString("Username") ?? "System";
+            // 4. 再寫 Log (這裡使用剛才抓到的 oldStatus/oldLevel)
+            AddSystemLog("資格審核", $"申請人: {passenger.RealName}",
+                $"管理員 {operatorName} 更新: [狀態: {oldStatus}->{auditStatus}], [等級: {oldLevel}->{disabilityLevel}]");
             return Ok("服務使用者資格審核與條件設定已順利儲存！");
         }
 
@@ -1415,15 +1427,17 @@ namespace BUS_Agency_backstage.Controllers
         /// [POST AJAX] 永久刪除或下架特定的公告消息
         /// </summary>
         [HttpPost]
-        [ValidateAntiForgeryToken] // 🛡️ 防止 CSRF 攻擊
+        [ValidateAntiForgeryToken]
         public IActionResult DeleteAnnouncement(int id)
         {
+            // 增加斷點或 Debug 訊息
+            System.Diagnostics.Debug.WriteLine("刪除公告 ID: " + id);
+
             var post = _db.Announcements.Find(id);
             if (post != null)
             {
                 _db.Announcements.Remove(post);
                 _db.SaveChanges();
-                AddSystemLog("刪除公告", post.Title, $"管理員刪除了公告：{post.Title}");
                 return Ok();
             }
             return NotFound();

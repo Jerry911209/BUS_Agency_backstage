@@ -64,7 +64,17 @@
                                     break;
                             }
                         </td>
-                        <td>@(user.CenterId?.ToString() ?? "未分配/總部")</td>
+                        <td>
+                            @{
+                                string centerName = user.CenterId switch
+                                {
+                                    100 => "花蓮總調度中心",
+                                    200 => "吉安分部調度中心",
+                                    _ => "未分配/總部"
+                                };
+                            }
+                            <strong>@centerName</strong>
+                        </td>
                         <td>
                             @if (user.IsLocked == true)
                             {

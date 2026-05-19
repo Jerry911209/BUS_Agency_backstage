@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BUS_Agency_backstage")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a3a68aa9311391fe65ada77d6ce62581f4a2780f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+51b6617a762c1df4154a36641774edbba675e95d")]
 [assembly: System.Reflection.AssemblyProductAttribute("BUS_Agency_backstage")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BUS_Agency_backstage")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

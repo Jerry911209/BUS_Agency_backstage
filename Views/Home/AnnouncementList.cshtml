@@ -17,12 +17,24 @@
             </tr>
         </thead>
         <tbody>
-            @foreach (var item in Model) {
+            @foreach (var item in Model)
+            {
                 <tr id="row-@item.PostId">
                     <td>
-                        @if(item.Title.Contains("[系統維護]")) { <span class="badge bg-danger">維護</span> }
-                        else if(item.Title.Contains("[政策異動]")) { <span class="badge bg-warning text-dark">政策</span> }
-                        else { <span class="badge bg-info text-dark">消息</span> }
+                        @if (item.Title.Contains("[系統維護]"))
+                        {
+                            <span class="badge bg-danger">維護</span>
+                        }
+                        else if (item.Title.Contains("[政策異動]"))
+                        {
+
+                            <span class="badge bg-warning text-dark">政策</span>
+                        }
+                        else
+                        {
+
+                            <span class="badge bg-info text-dark">消息</span>
+                        }
                     </td>
                     <td>@item.Title</td>
                     <td>@(item.PublishDate?.ToString("yyyy-MM-dd HH:mm"))</td>
@@ -36,14 +48,32 @@
             }
         </tbody>
     </table>
+    @Html.AntiForgeryToken()
 </div>
 
+
 <script>
-function deletePost(id) {
-    if(confirm('確定要刪除這則公告嗎？')) {
-        $.post('/Home/DeleteAnnouncement', { id: id }, function() {
-            $('#row-' + id).fadeOut();
+    function deletePost(id) {
+        if (!confirm('確定要刪除這則公告嗎？')) return;
+
+        // 關鍵：選取剛剛產生的那個隱藏欄位
+        var token = $('input[name="__RequestVerificationToken"]').val();
+
+        $.ajax({
+            url: '/Home/DeleteAnnouncement',
+            type: 'POST',
+            data: { id: id },
+            headers: {
+                // 這個名稱必須與後端預期的一致
+                "RequestVerificationToken": token
+            },
+            success: function () {
+                $('#row-' + id).fadeOut(300, function () { $(this).remove(); });
+            },
+            error: function (xhr, status, error) {
+                // 這裡顯示 400 就是因為沒有成功送出 token
+                alert("刪除失敗 (錯誤代碼: " + xhr.status + ")。請檢查 Token 是否已載入。");
+            }
         });
     }
-}
 </script>
