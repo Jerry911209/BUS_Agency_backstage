@@ -14,12 +14,14 @@
                     <form id="userForm">
                         <div class="mb-3">
                             <label class="form-label">登入帳號 (Username)</label>
-                            <input type="text" id="Username" name="Username" class="form-control" placeholder="請輸入英文或數字帳號" required />
+                            <input type="text" id="Username" name="Username" class="form-control"
+                                   placeholder="請輸入英文或數字帳號" required />
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">管理員姓名 (Real Name)</label>
-                            <input type="text" id="RealName" name="RealName" class="form-control" placeholder="請輸入姓名" required />
+                            <input type="text" id="RealName" name="RealName" class="form-control" placeholder="請輸入姓名"
+                                   required />
                         </div>
 
                         <div class="mb-3">
@@ -43,7 +45,8 @@
                                 <option value="" disabled selected>-- 請選擇所屬調度中心 --</option>
                                 @if (ViewBag.CenterList != null)
                                 {
-                                    foreach (var center in (List<BUS_Agency_backstage.Models.DispatchCenter>)ViewBag.CenterList)
+                                    foreach (var center in
+                                (List<BUS_Agency_backstage.Models.DispatchCenter>)ViewBag.CenterList)
                                     {
                                         <option value="@center.CenterId">@center.CenterName</option>
                                     }
@@ -52,12 +55,24 @@
                         </div>
 
                         <input type="hidden" name="RoleId" value="5" />
-                        
+
+                        @* <div class="mb-4">
+                            <label class="form-label text-muted">設定帳號權限</label>
+                            <input type="text" class="form-control bg-light" value="2 - 車輛調度中心管理員" readonly
+                                   style="cursor: not-allowed;" />
+
+                            <input type="text" class="form-control bg-light" value="5 - 機關管理員" readonly
+                                   style="cursor: not-allowed;" />
+
+</div> *@
                         <div class="mb-4">
                             <label class="form-label text-muted">設定帳號權限</label>
-                            <input type="text" class="form-control bg-light" value="5 - 機關管理員" readonly style="cursor: not-allowed;" />
+                            <select class="form-select">
+                                <option value="" disabled selected>請選擇帳號權限...</option>
+                                <option value="2">2 - 車輛調度中心管理員</option>
+                                <option value="5">5 - 機關管理員</option>
+                            </select>
                         </div>
-
                         <div class="d-flex justify-content-between">
                             <a asp-action="Index" class="btn btn-secondary">返回列表</a>
                             <button type="button" id="btnSubmit" class="btn btn-success">確認新增帳號</button>
@@ -74,7 +89,7 @@
         $(document).ready(function () {
             // 1. 生日自動生成密碼
             $('#birthdayInput').on('change', function () {
-                let dateVal = $(this).val(); 
+                let dateVal = $(this).val();
                 if (dateVal) {
                     let formattedPwd = dateVal.replace(/-/g, '');
                     $('#passwordDisplay').val(formattedPwd);
