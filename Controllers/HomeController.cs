@@ -1077,8 +1077,9 @@ namespace BUS_Agency_backstage.Controllers
         /// 邏輯：利用 ViewBag 打包所有「狀態為待審核(0)或補件中(3)」的預約單，以及營運中正常車輛與司機組成下拉選單
         /// </summary>
         [HttpGet]
-        public IActionResult EditDispatch(int? id)
+        public IActionResult EditDispatch(long? id)
         {
+            
             // 挑選出需要排班的有效預約單
             ViewBag.Bookings = _db.Bookings
                 .Where(b => b.BookingStatus == 0 || b.BookingStatus == 3)
